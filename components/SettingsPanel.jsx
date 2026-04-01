@@ -1,37 +1,39 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const COLORS = ['#e8a020','#5b6cf5','#12c4a0','#f04060','#b06aff','#ff7060','#00d4ff','#ff0080','#22c55e','#f59e0b'];
-const ICONS  = ['📋','📁','🧾','💳','📐','🏅','✉️','📎','📊','📦','🔑','📌','🗂️','📝','🔧','📷','🗃️','📑','🏷️','⚡'];
+const COLORS = ['#d4a84a', '#4ade80', '#8b5cf6', '#ffffff', '#38bdf8', '#fb7185', '#f59e0b', '#22c55e', '#a78bfa', '#e879f9'];
+const ICONS = ['📁', '📄', '📋', '🧾', '📦', '🛡️', '📌', '🗂️', '📝', '📷', '🔐', '⚙️', '🏷️', '📑', '📊'];
 
 export default function SettingsPanel({ categories, folderTypes, onClose, onRefresh }) {
-  const [tab, setTab]         = useState('categories');
+  const [tab, setTab] = useState('categories');
   const [catName, setCatName] = useState('');
-  const [catColor, setCatColor] = useState('#e8a020');
-  const [ftName, setFtName]   = useState('');
-  const [ftIcon, setFtIcon]   = useState('📁');
-  const [ftColor, setFtColor] = useState('#5b6cf5');
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState('');
+  const [catColor, setCatColor] = useState('#d4a84a');
+  const [ftName, setFtName] = useState('');
+  const [ftIcon, setFtIcon] = useState('📁');
+  const [ftColor, setFtColor] = useState('#8b5cf6');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => { setError(''); }, [tab]);
+  useEffect(() => setError(''), [tab]);
 
   async function addCategory() {
     if (!catName.trim()) { setError('Name is required'); return; }
     setSaving(true); setError('');
     try {
-      const res = await fetch('/api/categories', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ name: catName.trim(), color: catColor }),
-      });
-      if (!res.ok) { const d = await res.json(); setError(d.error||'Failed'); return; }
-      setCatName(''); onRefresh();
+      const res = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: catName.trim(), color: catColor }) });
+      if (!res.ok) {
+        const d = await res.json();
+        setError(d.error || 'Failed');
+        return;
+      }
+      setCatName('');
+      onRefresh();
     } finally { setSaving(false); }
   }
 
   async function deleteCategory(id) {
     if (!confirm('Delete this category?')) return;
-    await fetch(`/api/categories/${id}`, { method:'DELETE' });
+    await fetch(`/api/categories/${id}`, { method: 'DELETE' });
     onRefresh();
   }
 
@@ -39,145 +41,110 @@ export default function SettingsPanel({ categories, folderTypes, onClose, onRefr
     if (!ftName.trim()) { setError('Name is required'); return; }
     setSaving(true); setError('');
     try {
-      const res = await fetch('/api/folder-types', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ name: ftName.trim(), icon: ftIcon, color: ftColor }),
-      });
-      if (!res.ok) { const d = await res.json(); setError(d.error||'Failed'); return; }
-      setFtName(''); onRefresh();
+      const res = await fetch('/api/folder-types', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: ftName.trim(), icon: ftIcon, color: ftColor }) });
+      if (!res.ok) {
+        const d = await res.json();
+        setError(d.error || 'Failed');
+        return;
+      }
+      setFtName('');
+      onRefresh();
     } finally { setSaving(false); }
   }
 
   async function deleteFolderType(id) {
     if (!confirm('Delete this folder type?')) return;
-    const res = await fetch(`/api/folder-types/${id}`, { method:'DELETE' });
-    if (!res.ok) { const d = await res.json(); setError(d.error||'Failed'); return; }
+    const res = await fetch(`/api/folder-types/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const d = await res.json();
+      setError(d.error || 'Failed');
+      return;
+    }
     onRefresh();
   }
 
   const ColorPicker = ({ value, onChange }) => (
-    <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
-      {COLORS.map(c => (
-        <button key={c} onClick={() => onChange(c)} style={{
-          width:22, height:22, borderRadius:'50%', background:c, padding:0, border:'none',
-          cursor:'pointer',
-          outline: value===c ? '2px solid #fff' : '2px solid transparent',
-          outlineOffset:2,
-          boxShadow: value===c ? `0 0 8px ${c}` : 'none',
-          transition:'all 0.15s',
-        }} />
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {COLORS.map((c) => (
+        <button key={c} onClick={() => onChange(c)} style={{ width: 28, height: 28, borderRadius: '50%', background: c, border: 'none', cursor: 'pointer', outline: value === c ? '2px solid #fff' : '2px solid transparent', outlineOffset: 2, boxShadow: value === c ? `0 0 18px ${c}` : 'none' }} />
       ))}
     </div>
   );
 
   return (
     <div className="fade-up">
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:28 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
         <div>
-          <div style={{ fontSize:9, color:'var(--accent)', letterSpacing:4, fontWeight:700, marginBottom:4 }}>ADMIN</div>
-          <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:28, letterSpacing:2, color:'var(--text)' }}>Settings</div>
+          <div style={{ fontSize: 11, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.22em', fontWeight: 800 }}>Configuration</div>
+          <div className="premium-title" style={{ fontSize: 38, fontWeight: 700, marginTop: 6 }}>Settings</div>
         </div>
-        <button onClick={onClose} style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:8, padding:'8px 16px', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕ Close</button>
+        <button onClick={onClose} className="btn-ghost">Close</button>
       </div>
 
-      <div style={{ display:'flex', gap:0, marginBottom:28, borderBottom:'1px solid var(--border)' }}>
-        {[['categories','🏷 Work Categories'],['folders','📁 Folder Types']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} style={{
-            padding:'11px 22px', background:'transparent', border:'none',
-            borderBottom:`2px solid ${tab===key ? 'var(--accent)' : 'transparent'}`,
-            color: tab===key ? 'var(--accent)' : 'var(--muted)',
-            fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:1, transition:'all 0.15s',
-          }}>{label}</button>
-        ))}
-      </div>
+      <div className="panel" style={{ padding: 22 }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+          <button onClick={() => setTab('categories')} className={tab === 'categories' ? 'btn-premium' : 'btn-ghost'}>Work Categories</button>
+          <button onClick={() => setTab('folders')} className={tab === 'folders' ? 'btn-secondary' : 'btn-ghost'}>Folder Types</button>
+        </div>
 
-      {tab === 'categories' && (
-        <div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:24, minHeight:40 }}>
-            {categories.length === 0 ? (
-              <div style={{ fontSize:13, color:'var(--muted)', fontStyle:'italic' }}>No categories yet. Add one below.</div>
-            ) : categories.map(c => (
-              <div key={c.id} style={{
-                display:'flex', alignItems:'center', gap:8, padding:'8px 14px', borderRadius:24,
-                background:c.color+'14', border:`1px solid ${c.color}35`,
-              }}>
-                <span style={{ width:8, height:8, borderRadius:'50%', background:c.color, boxShadow:`0 0 6px ${c.color}` }} />
-                <span style={{ fontSize:12, fontWeight:700, color:c.color }}>{c.name}</span>
-                <button onClick={() => deleteCategory(c.id)} style={{ background:'transparent', border:'none', color:'var(--red)', cursor:'pointer', fontSize:16, lineHeight:1, padding:'0 0 0 2px', opacity:0.7 }}>×</button>
-              </div>
-            ))}
-          </div>
+        {error && <div style={{ marginBottom: 16, borderRadius: 14, padding: '12px 14px', background: 'rgba(255,107,129,0.08)', border: '1px solid rgba(255,107,129,0.2)', color: '#ffdce2', fontSize: 13 }}>{error}</div>}
 
-          <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:12, padding:'20px' }}>
-            <div style={{ fontSize:9, color:'var(--muted)', letterSpacing:3, marginBottom:16, fontWeight:700 }}>ADD NEW CATEGORY</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:10, marginBottom:14 }}>
-              <div>
-                <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:6 }}>NAME</label>
-                <input value={catName} onChange={e => setCatName(e.target.value)} placeholder="e.g. Joint Venture" onKeyDown={e => e.key==='Enter' && addCategory()} />
-              </div>
-              <div style={{ display:'flex', alignItems:'flex-end' }}>
-                <button onClick={addCategory} disabled={saving} style={{ padding:'9px 22px', background:'var(--accent)', border:'none', borderRadius:8, color:'#000', fontWeight:700, fontSize:12, cursor:'pointer', whiteSpace:'nowrap' }}>
-                  {saving ? '…' : '+ Add'}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:8 }}>COLOUR</label>
+        {tab === 'categories' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 22 }}>
+            <div className="glass-card" style={{ borderRadius: 24, padding: 18 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 12 }}>Add category</div>
+              <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="e.g. Joint Venture" />
+              <div style={{ marginTop: 14, marginBottom: 10, color: 'var(--muted)', fontSize: 12 }}>Choose color</div>
               <ColorPicker value={catColor} onChange={setCatColor} />
+              <button onClick={addCategory} disabled={saving} className="btn-premium" style={{ marginTop: 18, width: '100%' }}>{saving ? 'SAVING…' : 'ADD CATEGORY'}</button>
             </div>
-            {error && <div style={{ color:'var(--red)', fontSize:12, marginTop:12 }}>{error}</div>}
-          </div>
-        </div>
-      )}
-
-      {tab === 'folders' && (
-        <div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(170px, 1fr))', gap:8, marginBottom:24 }}>
-            {folderTypes.map(f => (
-              <div key={f.id} style={{
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                padding:'10px 14px', borderRadius:10,
-                background:f.color+'10', border:`1px solid ${f.color}28`,
-              }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontSize:20 }}>{f.icon}</span>
-                  <div>
-                    <div style={{ fontSize:12, fontWeight:600, color:f.color }}>{f.name}</div>
-                    {f.is_system && <div style={{ fontSize:9, color:'var(--muted)', letterSpacing:2 }}>BUILT-IN</div>}
+            <div style={{ display: 'grid', gap: 12 }}>
+              {categories.map((cat) => (
+                <div key={cat.id} className="glass-card" style={{ borderRadius: 20, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <span style={{ width: 14, height: 14, borderRadius: '50%', background: cat.color, boxShadow: `0 0 16px ${cat.color}` }} />
+                    <div>
+                      <div style={{ fontWeight: 800 }}>{cat.name}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>{cat.color}</div>
+                    </div>
                   </div>
+                  <button onClick={() => deleteCategory(cat.id)} className="btn-danger">Delete</button>
                 </div>
-                {!f.is_system && (
-                  <button onClick={() => deleteFolderType(f.id)} style={{ background:'transparent', border:'none', color:'var(--red)', cursor:'pointer', fontSize:16, opacity:0.7, lineHeight:1 }}>×</button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:12, padding:'20px' }}>
-            <div style={{ fontSize:9, color:'var(--muted)', letterSpacing:3, marginBottom:16, fontWeight:700 }}>ADD NEW FOLDER TYPE</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr auto auto', gap:10, marginBottom:14, alignItems:'flex-end' }}>
-              <div>
-                <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:6 }}>NAME</label>
-                <input value={ftName} onChange={e => setFtName(e.target.value)} placeholder="e.g. Safety Reports" onKeyDown={e => e.key==='Enter' && addFolderType()} />
-              </div>
-              <div>
-                <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:6 }}>ICON</label>
-                <select value={ftIcon} onChange={e => setFtIcon(e.target.value)} style={{ width:80 }}>
-                  {ICONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
-                </select>
-              </div>
-              <button onClick={addFolderType} disabled={saving} style={{ padding:'9px 22px', background:'var(--accent)', border:'none', borderRadius:8, color:'#000', fontWeight:700, fontSize:12, cursor:'pointer' }}>
-                {saving ? '…' : '+ Add'}
-              </button>
+              ))}
             </div>
-            <div>
-              <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:8 }}>COLOUR</label>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 22 }}>
+            <div className="glass-card" style={{ borderRadius: 24, padding: 18 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 12 }}>Add folder type</div>
+              <input value={ftName} onChange={(e) => setFtName(e.target.value)} placeholder="e.g. Safety Reports" />
+              <div style={{ marginTop: 14, color: 'var(--muted)', fontSize: 12, marginBottom: 8 }}>Choose icon</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {ICONS.map((icon) => (
+                  <button key={icon} onClick={() => setFtIcon(icon)} style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${ftIcon === icon ? 'var(--accent-3)' : 'var(--border)'}`, background: ftIcon === icon ? 'var(--accent-purple-soft)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', fontSize: 20 }}>{icon}</button>
+                ))}
+              </div>
+              <div style={{ marginTop: 14, color: 'var(--muted)', fontSize: 12, marginBottom: 8 }}>Choose color</div>
               <ColorPicker value={ftColor} onChange={setFtColor} />
+              <button onClick={addFolderType} disabled={saving} className="btn-secondary" style={{ marginTop: 18, width: '100%' }}>{saving ? 'SAVING…' : 'ADD FOLDER TYPE'}</button>
             </div>
-            {error && <div style={{ color:'var(--red)', fontSize:12, marginTop:12 }}>{error}</div>}
+            <div style={{ display: 'grid', gap: 12 }}>
+              {folderTypes.map((ft) => (
+                <div key={ft.id} className="glass-card" style={{ borderRadius: 20, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 16, background: `${ft.color}20`, display: 'grid', placeItems: 'center', fontSize: 24, boxShadow: `0 0 18px ${ft.color}24` }}>{ft.icon}</div>
+                    <div>
+                      <div style={{ fontWeight: 800 }}>{ft.name}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>{ft.key} · {ft.color}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => deleteFolderType(ft.id)} className="btn-danger">Delete</button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -2,102 +2,106 @@
 import { useState } from 'react';
 
 export default function AddWorkModal({ onClose, onCreated, categories = [] }) {
-  const [name, setName]         = useState('');
+  const [name, setName] = useState('');
   const [category, setCategory] = useState('');
-  const [loa, setLoa]           = useState('');
+  const [loa, setLoa] = useState('');
   const [location, setLocation] = useState('');
-  const [notes, setNotes]       = useState('');
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleSave() {
     if (!name.trim()) { setError('Work name is required'); return; }
-    if (!category)    { setError('Please select a category'); return; }
+    if (!category) { setError('Please select a category'); return; }
     setSaving(true); setError('');
     try {
       const res = await fetch('/api/works', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), type: category, loa: loa||null, location: location||null, notes: notes||null }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), type: category, loa: loa || null, location: location || null, notes: notes || null }),
       });
-      if (!res.ok) { const d = await res.json(); setError(d.error||'Failed'); return; }
+      if (!res.ok) {
+        const d = await res.json();
+        setError(d.error || 'Failed');
+        return;
+      }
       onCreated();
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 2000, padding: 24, backdropFilter: 'blur(8px)',
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="fade-up" style={{
-        background: 'var(--card)', border: '1px solid var(--border)',
-        borderRadius: 16, padding: '28px', width: '100%', maxWidth: 480,
-        boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-      }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
-          <div>
-            <div style={{ fontSize:9, color:'var(--accent)', letterSpacing:3, marginBottom:4, fontWeight:700 }}>NEW ENTRY</div>
-            <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:24, letterSpacing:2, color:'var(--text)' }}>Add Work</div>
-          </div>
-          <button onClick={onClose} style={{ background:'transparent', border:'none', color:'var(--muted)', fontSize:20, cursor:'pointer', lineHeight:1 }}>✕</button>
-        </div>
-
-        <div style={{ marginBottom:18 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:10 }}>CATEGORY *</label>
-          {categories.length === 0 ? (
-            <div style={{ fontSize:12, color:'var(--muted)', padding:'10px 14px', border:'1px solid var(--border)', borderRadius:8, fontStyle:'italic' }}>
-              No categories yet — add them in ⚙ Settings first
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2500, background: 'rgba(6,8,15,0.72)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="panel fade-up" style={{ width: '100%', maxWidth: 620, padding: 28, position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 24, background: 'linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 22 }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.25em', fontWeight: 800 }}>Create workspace</div>
+              <div className="premium-title" style={{ fontSize: 34, fontWeight: 700, marginTop: 6 }}>Add new work</div>
+              <div style={{ color: 'var(--muted)', fontSize: 14, marginTop: 8 }}>Create a premium document container with category, LOA reference, and location details.</div>
             </div>
-          ) : (
-            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-              {categories.map(cat => (
-                <button key={cat.id} onClick={() => setCategory(cat.name)} style={{
-                  padding:'9px 20px', borderRadius:9, cursor:'pointer', fontWeight:700, fontSize:12,
-                  border:`1px solid ${category===cat.name ? cat.color : 'var(--border)'}`,
-                  background: category===cat.name ? cat.color+'18' : 'transparent',
-                  color: category===cat.name ? cat.color : 'var(--muted)',
-                  transition:'all 0.15s',
-                  boxShadow: category===cat.name ? `0 0 14px ${cat.color}22` : 'none',
-                }}>{cat.name}</button>
-              ))}
+            <button onClick={onClose} className="btn-ghost">Close</button>
+          </div>
+
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ display: 'block', marginBottom: 10, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>Category *</label>
+            {categories.length === 0 ? (
+              <div className="glass-card" style={{ borderRadius: 16, padding: 14, color: 'var(--muted)' }}>No categories yet — add them from Settings first.</div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {categories.map((cat) => (
+                  <button key={cat.id} onClick={() => setCategory(cat.name)} style={{
+                    padding: '10px 16px',
+                    borderRadius: 14,
+                    border: `1px solid ${category === cat.name ? cat.color : 'var(--border)'}`,
+                    background: category === cat.name ? `${cat.color}22` : 'rgba(255,255,255,0.03)',
+                    color: category === cat.name ? cat.color : 'var(--text-2)',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all .18s ease',
+                    boxShadow: category === cat.name ? `0 14px 24px ${cat.color}24` : 'none',
+                  }}>{cat.name}</button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, marginBottom: 14 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>Work name *</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. NH Project – Package A" autoFocus />
             </div>
-          )}
-        </div>
-
-        <div style={{ marginBottom:14 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:6 }}>WORK NAME *</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. NHAI Road Project Phase 3" autoFocus />
-        </div>
-
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
-          <div>
-            <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:6 }}>LOA NO.</label>
-            <input value={loa} onChange={e => setLoa(e.target.value)} placeholder="LOA-2024-001" />
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>LOA No.</label>
+              <input value={loa} onChange={(e) => setLoa(e.target.value)} placeholder="LOA-2026-001" />
+            </div>
           </div>
-          <div>
-            <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:6 }}>LOCATION</label>
-            <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Chennai, TN" />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>Location</label>
+              <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Mumbai / Chennai / Site name" />
+            </div>
+            <div className="glass-card" style={{ borderRadius: 18, padding: 14 }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>Pro tip</div>
+              <div style={{ marginTop: 8, color: 'var(--text-2)', fontSize: 13, lineHeight: 1.6 }}>Use a consistent naming format so search works better for your team later.</div>
+            </div>
           </div>
-        </div>
 
-        <div style={{ marginBottom:22 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, display:'block', marginBottom:6 }}>NOTES</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional notes…" style={{ resize:'vertical', minHeight:68 }} />
-        </div>
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em' }}>Notes</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes, department, or owner details…" style={{ minHeight: 100, resize: 'vertical' }} />
+          </div>
 
-        {error && (
-          <div style={{ background:'rgba(240,64,96,0.1)', border:'1px solid rgba(240,64,96,0.25)', borderRadius:7, padding:'10px 14px', fontSize:12, color:'var(--red)', marginBottom:16 }}>{error}</div>
-        )}
+          {error && <div style={{ marginBottom: 16, borderRadius: 14, border: '1px solid rgba(255,107,129,0.2)', background: 'rgba(255,107,129,0.08)', padding: '12px 14px', color: '#ffdce2', fontSize: 13 }}>{error}</div>}
 
-        <div style={{ display:'flex', gap:10 }}>
-          <button onClick={onClose} style={{ flex:1, padding:'11px', background:'transparent', border:'1px solid var(--border)', borderRadius:9, color:'var(--muted)', fontSize:12, cursor:'pointer' }}>Cancel</button>
-          <button onClick={handleSave} disabled={saving} style={{
-            flex:2, padding:'11px',
-            background:'linear-gradient(135deg, rgba(232,160,32,0.25), rgba(245,200,66,0.12))',
-            border:'1px solid rgba(232,160,32,0.4)', borderRadius:9, color:'var(--accent)',
-            fontWeight:700, fontSize:12, letterSpacing:1, cursor:saving?'not-allowed':'pointer', opacity:saving?0.7:1,
-          }}>{saving ? 'SAVING…' : 'ADD WORK →'}</button>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+            <button onClick={onClose} className="btn-ghost">Cancel</button>
+            <button onClick={handleSave} disabled={saving} className="btn-premium">{saving ? 'SAVING…' : 'CREATE WORK'}</button>
+          </div>
         </div>
       </div>
     </div>

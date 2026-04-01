@@ -8,269 +8,326 @@ import SettingsPanel from './SettingsPanel';
 
 export default function DashboardClient({ session }) {
   const router = useRouter();
-  const [works, setWorks]             = useState([]);
-  const [categories, setCategories]   = useState([]);
+  const [works, setWorks] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [folderTypes, setFolderTypes] = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState('');
-  const [catFilter, setCatFilter]     = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('all');
   const [activeWorkId, setActiveWorkId] = useState(null);
   const [activeFolder, setActiveFolder] = useState(null);
-  const [panel, setPanel]             = useState(null);
+  const [panel, setPanel] = useState(null);
   const [showAddWork, setShowAddWork] = useState(false);
-  const [time, setTime]               = useState('');
+  const [time, setTime] = useState('');
 
   useEffect(() => {
-    const tick = () => setTime(new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
+    const tick = () => setTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const el = document.getElementById('work-search-input');
+        if (el) el.focus();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const [w, c, f] = await Promise.all([
-        fetch('/api/works').then(r => r.json()),
-        fetch('/api/categories').then(r => r.json()),
-        fetch('/api/folder-types').then(r => r.json()),
+        fetch('/api/works').then((r) => r.json()),
+        fetch('/api/categories').then((r) => r.json()),
+        fetch('/api/folder-types').then((r) => r.json()),
       ]);
       setWorks(Array.isArray(w) ? w : []);
       setCategories(Array.isArray(c) ? c : []);
       setFolderTypes(Array.isArray(f) ? f : []);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   async function handleLogout() {
-    await fetch('/api/auth/logout', { method:'POST' });
+    await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
   }
 
   async function handleDeleteWork(id) {
     if (!confirm('Delete this work and ALL its files?')) return;
-    await fetch(`/api/works/${id}`, { method:'DELETE' });
-    setActiveWorkId(null); setActiveFolder(null); fetchAll();
+    await fetch(`/api/works/${id}`, { method: 'DELETE' });
+    setActiveWorkId(null);
+    setActiveFolder(null);
+    fetchAll();
   }
 
   function getCatColor(type) {
-    const c = categories.find(c => c.name.toLowerCase() === (type||'').toLowerCase());
-    return c?.color || 'var(--muted)';
+    const c = categories.find((x) => x.name.toLowerCase() === (type || '').toLowerCase());
+    return c?.color || 'var(--accent-3)';
   }
 
-  const filtered = works.filter(w => {
-    const matchCat = catFilter==='all' || w.type.toLowerCase()===catFilter.toLowerCase();
-    const matchSrc = w.name.toLowerCase().includes(search.toLowerCase()) ||
-      (w.location||'').toLowerCase().includes(search.toLowerCase());
+  const filtered = works.filter((w) => {
+    const matchCat = catFilter === 'all' || w.type.toLowerCase() === catFilter.toLowerCase();
+    const s = search.toLowerCase();
+    const matchSrc = w.name.toLowerCase().includes(s) || (w.location || '').toLowerCase().includes(s) || (w.loa || '').toLowerCase().includes(s);
     return matchCat && matchSrc;
   });
 
-  const activeWork      = works.find(w => w.id === activeWorkId);
-  const activeFolderDef = folderTypes.find(f => f.key === activeFolder);
-  const totalFiles      = activeWork ? Object.values(activeWork.fileCounts||{}).reduce((a,b)=>a+b,0) : 0;
-  const globalTotal     = works.reduce((a,w)=>a+Object.values(w.fileCounts||{}).reduce((x,y)=>x+y,0),0);
+  const activeWork = works.find((w) => w.id === activeWorkId);
+  const activeFolderDef = folderTypes.find((f) => f.key === activeFolder);
+  const totalFiles = activeWork ? Object.values(activeWork.fileCounts || {}).reduce((a, b) => a + b, 0) : 0;
+  const globalTotal = works.reduce((a, w) => a + Object.values(w.fileCounts || {}).reduce((x, y) => x + y, 0), 0);
+  const topWork = works
+    .map((w) => ({ ...w, count: Object.values(w.fileCounts || {}).reduce((a, b) => a + b, 0) }))
+    .sort((a, b) => b.count - a.count)[0];
 
-  const hdrBtn = (active, color='var(--accent)') => ({
-    background: active ? `${color}18` : 'transparent',
-    border: `1px solid ${active ? color+'55' : 'var(--border)'}`,
-    borderRadius:7, padding:'6px 14px', color: active ? color : 'var(--muted)',
-    fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:1, transition:'all 0.2s',
+  const shellBtn = (active, color) => ({
+    padding: '10px 14px',
+    borderRadius: 14,
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: '0.09em',
+    cursor: 'pointer',
+    color: active ? '#fff' : 'var(--text-2)',
+    border: `1px solid ${active ? color : 'var(--border)'}`,
+    background: active ? `linear-gradient(135deg, ${color}, rgba(255,255,255,0.1))` : 'rgba(255,255,255,0.03)',
+    boxShadow: active ? `0 12px 26px ${color}30` : 'none',
+    transition: 'all .18s ease',
   });
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', position:'relative', zIndex:1 }}>
-
-      {/* HEADER */}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
       <header style={{
-        background:'rgba(11,14,28,0.98)', borderBottom:'1px solid var(--border)',
-        padding:'0 22px', display:'flex', alignItems:'center', justifyContent:'space-between',
-        height:58, flexShrink:0, zIndex:50, backdropFilter:'blur(20px)',
-        boxShadow:'0 1px 0 rgba(232,160,32,0.06), 0 4px 24px rgba(0,0,0,0.4)',
+        background: 'rgba(9,11,19,0.88)',
+        borderBottom: '1px solid var(--border)',
+        height: 78,
+        padding: '0 22px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 8px 28px rgba(0,0,0,0.26)',
+        position: 'relative',
       }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <div style={{
-            width:38, height:38, background:'linear-gradient(135deg, #e8a020, #f5c842)',
-            borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center',
-            fontFamily:"'Space Grotesk', sans-serif", fontSize:15, color:'#000', fontWeight:900,
-            boxShadow:'0 4px 16px rgba(232,160,32,0.3)',
-          }}>SST</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg, #fff3cb 0%, #d4a84a 45%, #f3cf73 100%)', color: '#171106', display: 'grid', placeItems: 'center', fontWeight: 900, fontSize: 18, boxShadow: 'var(--shadow-gold)' }}>SST</div>
           <div>
-            <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:18, letterSpacing:3, color:'var(--text)' }}>S S TRADERS</div>
-            <div style={{ fontSize:8, color:'var(--muted)', letterSpacing:4 }}>DOCUMENT MANAGEMENT SYSTEM</div>
+            <div className="premium-title gold-text" style={{ fontSize: 30, fontWeight: 700 }}>S S Traders</div>
+            <div style={{ color: 'var(--muted)', fontSize: 10, letterSpacing: '0.34em', textTransform: 'uppercase' }}>Document Management Suite</div>
           </div>
         </div>
 
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:'var(--accent)', padding:'4px 10px', border:'1px solid rgba(232,160,32,0.18)', borderRadius:5, background:'rgba(232,160,32,0.05)' }}>{time}</div>
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="glass-card" style={{ borderRadius: 14, padding: '10px 14px', color: 'var(--accent)', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em' }}>{time}</div>
           {session.role === 'admin' && (
             <>
-              <button onClick={() => setPanel(panel==='settings' ? null : 'settings')} style={hdrBtn(panel==='settings','var(--accent)')}>⚙ SETTINGS</button>
-              <button onClick={() => setPanel(panel==='users' ? null : 'users')} style={hdrBtn(panel==='users','var(--accent2)')}>👥 USERS</button>
+              <button onClick={() => setPanel(panel === 'settings' ? null : 'settings')} style={shellBtn(panel === 'settings', 'rgba(212,168,74,0.9)')}>⚙ SETTINGS</button>
+              <button onClick={() => setPanel(panel === 'users' ? null : 'users')} style={shellBtn(panel === 'users', 'rgba(139,92,246,0.9)')}>👥 USERS</button>
             </>
           )}
-
-          <div style={{ background:'rgba(232,160,32,0.05)', border:'1px solid rgba(232,160,32,0.14)', borderRadius:24, padding:'5px 14px', fontSize:11, color:'var(--muted)', fontFamily:"'IBM Plex Mono',monospace", display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent3)', display:'inline-block', boxShadow:'0 0 6px var(--accent3)', animation:'pulse 2s ease-in-out infinite' }} />
-            <span style={{ color:'var(--text)' }}>{session.name}</span>
-            <span style={{ color:'var(--border)' }}>|</span>
-            <span style={{ color: session.role==='admin' ? 'var(--accent)' : 'var(--accent2)' }}>{session.role.toUpperCase()}</span>
+          <div className="glass-card" style={{ borderRadius: 999, padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: session.role === 'admin' ? 'var(--accent)' : 'var(--accent-2)', boxShadow: session.role === 'admin' ? '0 0 16px rgba(212,168,74,.55)' : '0 0 16px rgba(74,222,128,.55)' }} />
+            <span style={{ color: 'var(--text-2)' }}>{session.name}</span>
+            <span style={{ color: 'var(--muted-2)' }}>/</span>
+            <span style={{ color: session.role === 'admin' ? 'var(--accent)' : 'var(--accent-2)', fontWeight: 800, letterSpacing: '0.08em' }}>{session.role.toUpperCase()}</span>
           </div>
-
-          <button onClick={handleLogout} style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:7, padding:'6px 14px', color:'var(--muted)', fontSize:11, cursor:'pointer', transition:'all 0.2s' }}>SIGN OUT</button>
+          <button onClick={handleLogout} className="btn-ghost">SIGN OUT</button>
         </div>
       </header>
 
-      <div style={{ display:'flex', flex:1, overflow:'hidden', position:'relative', zIndex:1 }}>
-
-        {/* SIDEBAR */}
-        <aside style={{ width:268, background:'rgba(10,12,22,0.98)', borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', overflow:'hidden', flexShrink:0 }}>
-          <div style={{ padding:'14px 12px 10px', borderBottom:'1px solid var(--border)' }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-              <span style={{ fontSize:9, letterSpacing:4, color:'var(--muted)', fontWeight:700 }}>WORKS</span>
-              <span style={{ fontSize:10, color:'var(--accent)', fontFamily:"'IBM Plex Mono',monospace", background:'rgba(232,160,32,0.1)', padding:'2px 8px', borderRadius:4 }}>{filtered.length}</span>
-            </div>
-            <div style={{ position:'relative' }}>
-              <input placeholder="Search works…" value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft:32, fontSize:12 }} />
-              <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--muted)', fontSize:13 }}>⌕</span>
-            </div>
-          </div>
-
-          <div style={{ padding:'8px 12px', borderBottom:'1px solid var(--border)', display:'flex', gap:5, flexWrap:'wrap' }}>
-            <button onClick={() => setCatFilter('all')} style={{ padding:'4px 11px', borderRadius:20, fontSize:10, fontWeight:700, cursor:'pointer', transition:'all 0.15s', border:`1px solid ${catFilter==='all' ? 'var(--accent)' : 'var(--border)'}`, background: catFilter==='all' ? 'rgba(232,160,32,0.12)' : 'transparent', color: catFilter==='all' ? 'var(--accent)' : 'var(--muted)' }}>ALL</button>
-            {categories.map(cat => (
-              <button key={cat.id} onClick={() => setCatFilter(catFilter===cat.name ? 'all' : cat.name)} style={{ padding:'4px 11px', borderRadius:20, fontSize:10, fontWeight:700, cursor:'pointer', transition:'all 0.15s', border:`1px solid ${catFilter===cat.name ? cat.color : 'var(--border)'}`, background: catFilter===cat.name ? cat.color+'14' : 'transparent', color: catFilter===cat.name ? cat.color : 'var(--muted)' }}>{cat.name}</button>
-            ))}
-          </div>
-
-          <div style={{ flex:1, overflowY:'auto', padding:'4px 8px' }}>
-            {loading ? (
-              <div style={{ padding:24, textAlign:'center', color:'var(--muted)', fontSize:12 }}>
-                <div style={{ animation:'spin 1s linear infinite', display:'inline-block', fontSize:20, marginBottom:8 }}>⚙️</div>
-                <div>Loading…</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '305px 1fr', flex: 1, overflow: 'hidden' }}>
+        <aside style={{ padding: 18, borderRight: '1px solid var(--border)', background: 'linear-gradient(180deg, rgba(12,15,26,0.95), rgba(9,11,18,0.92))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="glass-card" style={{ borderRadius: 24, padding: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em', color: 'var(--muted)' }}>Workspace</div>
+                <div className="premium-title" style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>Works library</div>
               </div>
+              <div style={{ minWidth: 34, height: 34, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'rgba(212,168,74,0.12)', color: 'var(--accent)', fontWeight: 800 }}>{filtered.length}</div>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <input id="work-search-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search works, LOA, location..." style={{ paddingLeft: 40 }} />
+              <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }}>⌕</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => setCatFilter('all')} style={shellBtn(catFilter === 'all', 'rgba(212,168,74,0.92)')}>ALL</button>
+              {categories.map((cat) => (
+                <button key={cat.id} onClick={() => setCatFilter(cat.name)} style={shellBtn(catFilter === cat.name, cat.color)}>{cat.name}</button>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', color: 'var(--muted)', fontSize: 12 }}>
+              <span>Quick focus</span>
+              <span style={{ color: 'var(--text-2)' }}>⌘ / Ctrl + K</span>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', marginTop: 14, paddingRight: 4 }}>
+            {loading ? (
+              <div className="glass-card" style={{ borderRadius: 24, padding: 18, color: 'var(--muted)' }}>Loading works…</div>
             ) : filtered.length === 0 ? (
-              <div style={{ padding:24, textAlign:'center', color:'var(--muted)', fontSize:12 }}>No works found</div>
+              <div className="glass-card" style={{ borderRadius: 24, padding: 22, textAlign: 'center' }}>
+                <div style={{ fontSize: 34 }}>📂</div>
+                <div style={{ marginTop: 10, fontWeight: 800 }}>No works found</div>
+                <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 6 }}>Adjust filters or add a new work to get started.</div>
+              </div>
             ) : filtered.map((w, i) => {
-              const count = Object.values(w.fileCounts||{}).reduce((a,b)=>a+b,0);
-              const isActive = activeWorkId===w.id;
-              const cc = getCatColor(w.type);
+              const count = Object.values(w.fileCounts || {}).reduce((a, b) => a + b, 0);
+              const active = activeWorkId === w.id;
+              const catColor = getCatColor(w.type);
               return (
-                <div key={w.id} onClick={() => { setActiveWorkId(w.id); setActiveFolder(null); setPanel(null); }} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 10px', borderRadius:8, cursor:'pointer', marginTop:3, border:`1px solid ${isActive ? cc+'55' : 'transparent'}`, background: isActive ? cc+'0c' : 'transparent', transition:'all 0.18s', animation:`slideIn 0.25s ease ${i*0.03}s both` }}>
-                  <div style={{ width:3, height:34, borderRadius:2, background:cc, flexShrink:0 }} />
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, fontWeight:500, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{w.name}</div>
-                    <div style={{ fontSize:10, color:'var(--muted)', marginTop:2, display:'flex', alignItems:'center', gap:5 }}>
-                      <span style={{ color:cc, fontWeight:700, fontSize:9, letterSpacing:1 }}>{w.type.toUpperCase()}</span>
-                      {w.location && <><span style={{ color:'var(--border)' }}>·</span><span>{w.location}</span></>}
+                <button key={w.id} onClick={() => { setActiveWorkId(w.id); setActiveFolder(null); }} className="fade-up" style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  marginBottom: 10,
+                  padding: 16,
+                  borderRadius: 20,
+                  border: `1px solid ${active ? catColor : 'var(--border)'}`,
+                  background: active ? `linear-gradient(135deg, ${catColor}18, rgba(255,255,255,0.03))` : 'rgba(255,255,255,0.025)',
+                  boxShadow: active ? `0 14px 32px ${catColor}1f` : 'none',
+                  transition: 'all .18s ease',
+                  cursor: 'pointer',
+                  animationDelay: `${i * 0.04}s`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: catColor, boxShadow: `0 0 16px ${catColor}` }} />
+                        <span style={{ fontSize: 11, color: catColor, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{w.type}</span>
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.name}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 5 }}>{w.location || 'Location not set'}</div>
+                    </div>
+                    <div style={{ minWidth: 54, textAlign: 'right' }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: active ? 'var(--accent-4)' : 'var(--text-2)' }}>{count}</div>
+                      <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.16em' }}>files</div>
                     </div>
                   </div>
-                  <span style={{ fontSize:10, fontFamily:"'IBM Plex Mono',monospace", color: isActive ? cc : 'var(--muted)', background: isActive ? cc+'14' : 'transparent', padding:'2px 7px', borderRadius:4, flexShrink:0 }}>{count}</span>
-                </div>
+                </button>
               );
             })}
           </div>
 
-          {session.role === 'admin' && (
-            <div style={{ padding:'10px 12px', borderTop:'1px solid var(--border)' }}>
-              <button onClick={() => setShowAddWork(true)} style={{ width:'100%', padding:'10px', background:'linear-gradient(135deg, rgba(232,160,32,0.18), rgba(232,160,32,0.06))', border:'1px solid rgba(232,160,32,0.3)', borderRadius:8, color:'var(--accent)', fontWeight:700, fontSize:11, letterSpacing:2, cursor:'pointer', transition:'all 0.2s' }}>+ ADD NEW WORK</button>
+          <div className="glass-card" style={{ borderRadius: 22, padding: 16, marginTop: 14 }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--muted)', marginBottom: 6 }}>Premium shortcuts</div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-2)', fontSize: 13 }}><span>Top work</span><strong style={{ color: 'var(--accent)' }}>{topWork?.name || '—'}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-2)', fontSize: 13 }}><span>Total files</span><strong style={{ color: 'var(--accent-2)' }}>{globalTotal}</strong></div>
             </div>
-          )}
+            <button onClick={() => setShowAddWork(true)} className="btn-premium" style={{ width: '100%', marginTop: 14 }}>+ Add New Work</button>
+          </div>
         </aside>
 
-        {/* MAIN */}
-        <main style={{ flex:1, overflowY:'auto', padding:28, position:'relative' }}>
-          {panel === 'settings' ? (
-            <SettingsPanel categories={categories} folderTypes={folderTypes} onClose={() => setPanel(null)} onRefresh={fetchAll} />
-          ) : panel === 'users' ? (
+        <main style={{ overflowY: 'auto', padding: 22 }}>
+          {panel === 'users' && session.role === 'admin' ? (
             <UsersPanel works={works} onClose={() => setPanel(null)} />
+          ) : panel === 'settings' && session.role === 'admin' ? (
+            <SettingsPanel categories={categories} folderTypes={folderTypes} onClose={() => setPanel(null)} onRefresh={fetchAll} />
           ) : !activeWork ? (
-            <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:28 }}>
-              <div style={{ fontSize:72, filter:'drop-shadow(0 0 20px rgba(232,160,32,0.25))' }}>🏗️</div>
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:32, letterSpacing:4, color:'var(--text)' }}>SELECT A WORK</div>
-                <div style={{ fontSize:13, color:'var(--muted)', marginTop:8 }}>Choose from the sidebar or add a new work</div>
-              </div>
-              <div style={{ display:'flex', gap:14, flexWrap:'wrap', justifyContent:'center' }}>
+            <div className="panel fade-up" style={{ minHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 28, textAlign: 'center' }}>
+              <div style={{ width: 96, height: 96, borderRadius: 28, background: 'linear-gradient(135deg, rgba(74,222,128,0.18), rgba(139,92,246,0.18))', display: 'grid', placeItems: 'center', fontSize: 48, boxShadow: 'var(--shadow-purple)', animation: 'softFloat 5s ease-in-out infinite' }}>📁</div>
+              <div className="premium-title aurora-text" style={{ fontSize: 56, fontWeight: 700, marginTop: 22 }}>Choose a work</div>
+              <div style={{ color: 'var(--muted)', fontSize: 16, marginTop: 10, maxWidth: 520 }}>Browse your works from the left, filter by category, or create a new premium folder structure for an upcoming project.</div>
+
+              <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, width: '100%', maxWidth: 820 }}>
                 {[
-                  { v:works.length,       l:'Works',        c:'var(--accent)' },
-                  { v:globalTotal,        l:'Files',        c:'var(--accent2)' },
-                  { v:categories.length,  l:'Categories',   c:'var(--accent3)' },
-                  { v:folderTypes.length, l:'Folder Types', c:'var(--muted)' },
-                ].map(({v,l,c}) => (
-                  <div key={l} style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 28px', textAlign:'center', boxShadow:'0 4px 24px rgba(0,0,0,0.2)' }}>
-                    <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:38, color:c, lineHeight:1 }}>{v}</div>
-                    <div style={{ fontSize:9, color:'var(--muted)', letterSpacing:3, marginTop:5 }}>{l.toUpperCase()}</div>
+                  { label: 'Works', value: works.length, color: 'var(--accent)' },
+                  { label: 'Files', value: globalTotal, color: 'var(--accent-2)' },
+                  { label: 'Categories', value: categories.length, color: 'var(--accent-3)' },
+                  { label: 'Folder Types', value: folderTypes.length, color: 'var(--accent-4)' },
+                ].map((item) => (
+                  <div key={item.label} className="glass-card" style={{ borderRadius: 24, padding: '22px 16px' }}>
+                    <div style={{ fontSize: 34, fontWeight: 800, color: item.color }}>{item.value}</div>
+                    <div style={{ marginTop: 8, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em', fontSize: 11 }}>{item.label}</div>
                   </div>
                 ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 26 }}>
+                <button onClick={() => setShowAddWork(true)} className="btn-premium">Create Work</button>
+                {session.role === 'admin' && <button onClick={() => setPanel('settings')} className="btn-secondary">Open Settings</button>}
               </div>
             </div>
           ) : (
             <div className="fade-up">
-              <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:22, paddingBottom:20, borderBottom:'1px solid var(--border)' }}>
-                <div>
-                  <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:10, marginBottom:10 }}>
-                    <span style={{ padding:'3px 14px', borderRadius:24, fontSize:10, fontWeight:700, letterSpacing:2, background:getCatColor(activeWork.type)+'18', color:getCatColor(activeWork.type), border:`1px solid ${getCatColor(activeWork.type)}35` }}>{activeWork.type.toUpperCase()}</span>
-                    {activeWork.loa && <span style={{ fontSize:11, color:'var(--muted)', fontFamily:"'IBM Plex Mono',monospace" }}>LOA: {activeWork.loa}</span>}
-                    {activeWork.location && <span style={{ fontSize:11, color:'var(--muted)' }}>📍 {activeWork.location}</span>}
-                  </div>
-                  <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:30, letterSpacing:2, lineHeight:1.1, color:'var(--text)' }}>{activeWork.name}</div>
-                  {activeWork.notes && <div style={{ fontSize:12, color:'var(--muted)', marginTop:6, maxWidth:600 }}>{activeWork.notes}</div>}
-                </div>
-                {session.role === 'admin' && (
-                  <button onClick={() => handleDeleteWork(activeWork.id)} style={{ background:'rgba(240,64,96,0.08)', border:'1px solid rgba(240,64,96,0.2)', color:'var(--red)', borderRadius:8, padding:'8px 16px', fontSize:11, cursor:'pointer', fontWeight:600, letterSpacing:1, flexShrink:0 }}>🗑 DELETE</button>
-                )}
-              </div>
-
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:22 }}>
-                {[
-                  { v:totalFiles,    l:'Total Files',  c:'var(--accent)',  icon:'📄' },
-                  { v:folderTypes.length, l:'Folders', c:'var(--accent2)', icon:'📁' },
-                  { v:activeWork.type, l:'Category',   c:getCatColor(activeWork.type), icon:'🏷' },
-                  { v:new Date(activeWork.created_at).toLocaleDateString('en-IN'), l:'Created', c:'var(--muted)', icon:'📅' },
-                ].map(({v,l,c,icon}) => (
-                  <div key={l} style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden' }}>
-                    <div style={{ position:'absolute', right:12, top:12, fontSize:20, opacity:0.1 }}>{icon}</div>
-                    <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:26, color:c, lineHeight:1 }}>{v}</div>
-                    <div style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, marginTop:4 }}>{l.toUpperCase()}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:22 }}>
-                {folderTypes.map((f, i) => {
-                  const isActive = activeFolder===f.key;
-                  const count = activeWork.fileCounts?.[f.key]||0;
-                  return (
-                    <div key={f.key} onClick={() => setActiveFolder(isActive ? null : f.key)} style={{ background: isActive ? `${f.color}0e` : 'var(--card)', border:`1px solid ${isActive ? f.color+'50' : 'var(--border)'}`, borderRadius:10, padding:'16px 14px', cursor:'pointer', transition:'all 0.2s', boxShadow: isActive ? `0 0 18px ${f.color}14` : 'none', animation:`fadeUp 0.25s ease ${i*0.04}s both`, position:'relative', overflow:'hidden' }}>
-                      {isActive && <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:`linear-gradient(90deg, transparent, ${f.color}, transparent)` }} />}
-                      <div style={{ fontSize:24, marginBottom:10 }}>{f.icon}</div>
-                      <div style={{ fontSize:11, fontWeight:700, color: isActive ? f.color : 'var(--text)', letterSpacing:0.5 }}>{f.name}</div>
-                      <div style={{ fontSize:10, color:'var(--muted)', marginTop:4, fontFamily:"'IBM Plex Mono',monospace" }}>{count} {count===1?'file':'files'}</div>
+              <div className="panel" style={{ padding: 24, borderRadius: 28, marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 999, background: `${getCatColor(activeWork.type)}18`, border: `1px solid ${getCatColor(activeWork.type)}33`, color: getCatColor(activeWork.type), fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{activeWork.type}</div>
+                    <h1 className="premium-title" style={{ fontSize: 42, fontWeight: 700, marginTop: 14 }}>{activeWork.name}</h1>
+                    <div style={{ marginTop: 10, display: 'flex', gap: 18, flexWrap: 'wrap', color: 'var(--muted)', fontSize: 13 }}>
+                      <span>LOA: <strong style={{ color: 'var(--text-2)' }}>{activeWork.loa || 'Not set'}</strong></span>
+                      <span>Location: <strong style={{ color: 'var(--text-2)' }}>{activeWork.location || 'Not set'}</strong></span>
+                      <span>Files: <strong style={{ color: 'var(--accent-2)' }}>{totalFiles}</strong></span>
                     </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={() => setShowAddWork(true)} className="btn-premium">+ Add Work</button>
+                    {session.role === 'admin' && <button onClick={() => handleDeleteWork(activeWork.id)} className="btn-danger">Delete Work</button>}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+                  {[
+                    { label: 'Total Files', value: totalFiles, color: 'var(--accent)' },
+                    { label: 'Folder Types', value: folderTypes.length, color: 'var(--accent-3)' },
+                    { label: 'Top Category', value: activeWork.type, color: getCatColor(activeWork.type) },
+                    { label: 'Ready State', value: totalFiles > 0 ? 'Active' : 'Empty', color: totalFiles > 0 ? 'var(--accent-2)' : 'var(--text-2)' },
+                  ].map((item) => (
+                    <div key={item.label} className="glass-card" style={{ borderRadius: 20, padding: '18px 16px' }}>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>{item.label}</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: item.color }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginBottom: 18 }}>
+                {folderTypes.map((f, i) => {
+                  const isActive = activeFolder === f.key;
+                  const count = activeWork.fileCounts?.[f.key] || 0;
+                  return (
+                    <button key={f.key} onClick={() => setActiveFolder(isActive ? null : f.key)} className="fade-up" style={{
+                      textAlign: 'left',
+                      borderRadius: 22,
+                      padding: '18px 16px',
+                      border: `1px solid ${isActive ? f.color : 'var(--border)'}`,
+                      background: isActive ? `linear-gradient(135deg, ${f.color}18, rgba(255,255,255,0.03))` : 'rgba(255,255,255,0.03)',
+                      boxShadow: isActive ? `0 18px 36px ${f.color}20` : 'none',
+                      transition: 'all .18s ease',
+                      cursor: 'pointer',
+                      animationDelay: `${i * 0.04}s`,
+                    }}>
+                      <div style={{ fontSize: 28 }}>{f.icon}</div>
+                      <div style={{ marginTop: 10, fontWeight: 800, color: isActive ? f.color : 'var(--text)' }}>{f.name}</div>
+                      <div style={{ marginTop: 6, color: 'var(--muted)', fontSize: 12 }}>{count} {count === 1 ? 'file' : 'files'}</div>
+                    </button>
                   );
                 })}
               </div>
 
               {activeFolder && activeFolderDef && (
-                <FolderView
-                  key={`${activeWorkId}-${activeFolder}`}
-                  work={activeWork}
-                  folderKey={activeFolder}
-                  folderDef={activeFolderDef}
-                  session={session}
-                  onFilesChanged={fetchAll}
-                />
+                <FolderView key={`${activeWorkId}-${activeFolder}`} work={activeWork} folderKey={activeFolder} folderDef={activeFolderDef} session={session} onFilesChanged={fetchAll} />
               )}
             </div>
           )}
         </main>
       </div>
 
-      {showAddWork && (
-        <AddWorkModal categories={categories} onClose={() => setShowAddWork(false)} onCreated={() => { fetchAll(); setShowAddWork(false); }} />
-      )}
+      {showAddWork && <AddWorkModal categories={categories} onClose={() => setShowAddWork(false)} onCreated={() => { fetchAll(); setShowAddWork(false); }} />}
     </div>
   );
 }
