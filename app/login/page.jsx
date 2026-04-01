@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -13,17 +14,21 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
+
       const data = await res.json();
+
       if (!res.ok) {
         setError(data.error || 'Login failed');
         return;
       }
+
       router.push('/dashboard');
     } catch {
       setError('Something went wrong. Try again.');
@@ -33,71 +38,93 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-root">
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', width: 420, height: 420, left: '-4%', top: '-8%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(87,242,135,0.16), transparent 70%)', animation: 'softFloat 7s ease-in-out infinite' }} />
-        <div style={{ position: 'absolute', width: 520, height: 520, right: '-10%', top: '-12%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.18), transparent 70%)', animation: 'softFloat 8s ease-in-out infinite' }} />
-        <div style={{ position: 'absolute', width: 480, height: 480, left: '40%', bottom: '-16%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,209,102,0.14), transparent 70%)', animation: 'softFloat 9s ease-in-out infinite' }} />
-      </div>
-
-      <div className="login-shell fade-up">
-        <div className="login-side">
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1 }}>
-            <div style={{ width: 58, height: 58, borderRadius: 18, background: 'linear-gradient(135deg, #fff3c8, #ffd166)', color: '#141007', display: 'grid', placeItems: 'center', fontWeight: 900, fontSize: 20, boxShadow: 'var(--shadow-gold)' }}>SST</div>
+    <div className="login-shell">
+      <div className="login-card panel fade-up">
+        <div className="login-left">
+          <div className="login-brand">
+            <div className="login-brand-mark">SST</div>
             <div>
-              <div className="premium-title gold-text" style={{ fontSize: 32, fontWeight: 700 }}>SS Traders</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12, letterSpacing: '0.35em', textTransform: 'uppercase' }}>Document Command Center</div>
+              <div className="premium-title login-brand-title">SS Traders</div>
+              <div className="login-brand-sub">Document Management Suite</div>
             </div>
           </div>
 
-          <div style={{ position: 'relative', zIndex: 1, maxWidth: 560, marginTop: 52 }}>
-            <div className="login-chip"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-2)', boxShadow: '0 0 14px rgba(87,242,135,0.55)' }} />Always-on project archive</div>
-            <h1 className="premium-title aurora-text" style={{ fontSize: 72, lineHeight: 0.94, fontWeight: 700, marginTop: 22 }}>Control every file, team, and approval flow.</h1>
-            <p style={{ marginTop: 20, maxWidth: 500, color: 'var(--muted)', fontSize: 16, lineHeight: 1.8 }}>A brighter, faster internal system for work folders, tenders, invoices, certificates, and controlled access across your organization.</p>
+          <div className="login-badge">
+            <span className="login-badge-dot" />
+            Secure internal document control
           </div>
 
-          <div className="login-grid" style={{ position: 'relative', zIndex: 1 }}>
-            {[
-              { label: 'Access', value: 'Role managed', color: 'var(--accent-2)' },
-              { label: 'Storage', value: 'Cloud-first', color: 'var(--accent-4)' },
-              { label: 'Visibility', value: 'Always searchable', color: 'var(--accent-5)' },
-            ].map((item) => (
-              <div key={item.label} className="login-stat">
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: item.color, boxShadow: `0 0 18px ${item.color}` }} />
-                <div style={{ marginTop: 18, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em', fontSize: 11 }}>{item.label}</div>
-                <div style={{ marginTop: 8, fontSize: 15, fontWeight: 800 }}>{item.value}</div>
-              </div>
-            ))}
+          <div className="premium-title login-hero-title">
+            <div className="login-hero-line-1">Document</div>
+            <div className="login-hero-line-2">Operations</div>
+            <div className="login-hero-line-3">for teams and approvals.</div>
+          </div>
+
+          <p className="login-hero-copy">
+            Manage work folders, upload project records, control access by user,
+            and keep every file available in one internal system from anywhere.
+          </p>
+
+          <div className="login-metrics">
+            <div className="glass-card login-metric">
+              <div className="mono-font login-metric-k">Access Layer</div>
+              <div className="login-metric-v">JWT + HttpOnly</div>
+            </div>
+            <div className="glass-card login-metric">
+              <div className="mono-font login-metric-k">Storage</div>
+              <div className="login-metric-v">Cloudflare R2</div>
+            </div>
+            <div className="glass-card login-metric">
+              <div className="mono-font login-metric-k">Metadata</div>
+              <div className="login-metric-v">Neon Postgres</div>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'grid', placeItems: 'center', padding: 30 }}>
-          <div className="login-card">
-            <div style={{ fontSize: 11, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.28em', fontWeight: 800, marginBottom: 8 }}>Secure sign in</div>
-            <h1>Welcome back</h1>
-            <p>Use your internal credentials to access projects, users, folder controls, and live document operations.</p>
+        <div className="login-right">
+          <div className="glass-card login-form-wrap">
+            <div className="mono-font login-form-eyebrow">Sign In</div>
+            <div className="premium-title login-form-title">Welcome back</div>
+            <div className="login-form-copy">
+              Use your internal credentials to access works, folders, and files.
+            </div>
 
-            <form onSubmit={handleLogin} style={{ marginTop: 24 }}>
+            <form onSubmit={handleLogin}>
               <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', marginBottom: 8, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)' }}>Username</label>
-                <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="e.g. admin or admin@sstraders.com" autoComplete="username" required />
+                <label className="login-form-label">Username</label>
+                <input
+                  type="text"
+                  required
+                  autoComplete="username"
+                  placeholder="e.g. admin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
               </div>
+
               <div style={{ marginBottom: 18 }}>
-                <label style={{ display: 'block', marginBottom: 8, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)' }}>Password</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" required />
+                <label className="login-form-label">Password</label>
+                <input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
 
               {error && <div className="login-error">{error}</div>}
 
-              <button type="submit" disabled={loading} className="btn-premium" style={{ width: '100%', marginTop: 18 }}>
-                {loading ? 'Authenticating…' : 'Enter workspace'}
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-premium"
+                style={{ width: '100%' }}
+              >
+                {loading ? 'Authenticating…' : 'Enter Workspace'}
               </button>
             </form>
-
-            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between', gap: 12, color: 'var(--muted)', fontSize: 12 }}>
-              <span>Protected internal portal</span>
-              <span>Live workspace UI</span>
-            </div>
           </div>
         </div>
       </div>

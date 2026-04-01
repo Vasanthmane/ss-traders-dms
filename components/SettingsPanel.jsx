@@ -1,135 +1,206 @@
 'use client';
-import { useState, useEffect } from 'react';
 
-const COLORS = ['#ffd166', '#57f287', '#8b5cf6', '#38bdf8', '#ff5db1', '#fb7185', '#f59e0b', '#22c55e', '#a78bfa', '#e879f9'];
-const ICONS = ['📁', '📄', '📋', '🧾', '📦', '🛡️', '📌', '🗂️', '📝', '📷', '🔐', '⚙️', '🏷️', '📑', '📊'];
+import { useEffect, useState } from 'react';
 
-export default function SettingsPanel({ categories, folderTypes, onClose, onRefresh }) {
-  const [tab, setTab] = useState('categories');
-  const [catName, setCatName] = useState('');
-  const [catColor, setCatColor] = useState('#ffd166');
-  const [ftName, setFtName] = useState('');
-  const [ftIcon, setFtIcon] = useState('📁');
-  const [ftColor, setFtColor] = useState('#8b5cf6');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+const DEFAULT_CATEGORY_COLOR = '#8b5cf6';
 
-  useEffect(() => setError(''), [tab]);
+export default function SettingsPanel({ onClose }) {
+  const [categories, setCategories] = useState([]);
+  const [folderTypes, setFolderTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  async function addCategory() {
-    if (!catName.trim()) { setError('Name is required'); return; }
-    setSaving(true); setError('');
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryColor, setCategoryColor] = useState(DEFAULT_CATEGORY_COLOR);
+
+  const [folderName, setFolderName] = useState('');
+  const [folderKey, setFolderKey] = useState('');
+  const [folderIcon, setFolderIcon] = useState('📁');
+  const [folderColor, setFolderColor] = useState('#ff355e');
+
+  async function loadAll() {
+    setLoading(true);
     try {
-      const res = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: catName.trim(), color: catColor }) });
-      if (!res.ok) { const d = await res.json(); setError(d.error || 'Failed'); return; }
-      setCatName(''); onRefresh();
-    } finally { setSaving(false); }
+      const [cRes, fRes] = await Promise.all([
+        fetch('/api/categories', { cache: 'no-store' }),
+        fetch('/api/folder-types', { cache: 'no-store' }),
+      ]);
+
+      const [cData, fData] = await Promise.all([cRes.json(), fRes.json()]);
+      setCategories(Array.isArray(cData) ? cData : []);
+      setFolderTypes(Array.isArray(fData) ? fData : []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  async function createCategory() {
+    if (!categoryName.trim()) return;
+    await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: categoryName.trim(), color: categoryColor }),
+    });
+    setCategoryName('');
+    setCategoryColor(DEFAULT_CATEGORY_COLOR);
+    await loadAll();
+  }
+
+  async function createFolderType() {
+    if (!folderName.trim() || !folderKey.trim()) return;
+    await fetch('/api/folder-types', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: folderName.trim(),
+        key: folderKey.trim().toLowerCase(),
+        icon: folderIcon || '📁',
+        color: folderColor || '#ff355e',
+      }),
+    });
+    setFolderName('');
+    setFolderKey('');
+    setFolderIcon('📁');
+    setFolderColor('#ff355e');
+    await loadAll();
   }
 
   async function deleteCategory(id) {
     if (!confirm('Delete this category?')) return;
     await fetch(`/api/categories/${id}`, { method: 'DELETE' });
-    onRefresh();
-  }
-
-  async function addFolderType() {
-    if (!ftName.trim()) { setError('Name is required'); return; }
-    setSaving(true); setError('');
-    try {
-      const res = await fetch('/api/folder-types', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: ftName.trim(), icon: ftIcon, color: ftColor }) });
-      if (!res.ok) { const d = await res.json(); setError(d.error || 'Failed'); return; }
-      setFtName(''); onRefresh();
-    } finally { setSaving(false); }
+    await loadAll();
   }
 
   async function deleteFolderType(id) {
     if (!confirm('Delete this folder type?')) return;
-    const res = await fetch(`/api/folder-types/${id}`, { method: 'DELETE' });
-    if (!res.ok) { const d = await res.json(); setError(d.error || 'Failed'); return; }
-    onRefresh();
+    await fetch(`/api/folder-types/${id}`, { method: 'DELETE' });
+    await loadAll();
   }
-
-  const ColorPicker = ({ value, onChange }) => (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-      {COLORS.map((c) => (
-        <button key={c} onClick={() => onChange(c)} style={{ width: 30, height: 30, borderRadius: '50%', background: c, border: 'none', cursor: 'pointer', outline: value === c ? '2px solid #fff' : '2px solid transparent', outlineOffset: 2, boxShadow: value === c ? `0 0 20px ${c}` : 'none' }} />
-      ))}
-    </div>
-  );
 
   return (
     <div className="fade-up">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
         <div>
-          <div style={{ fontSize: 11, color: 'var(--accent-4)', textTransform: 'uppercase', letterSpacing: '0.22em', fontWeight: 800 }}>Configuration</div>
-          <div className="premium-title neon-text" style={{ fontSize: 40, fontWeight: 700, marginTop: 6 }}>Settings</div>
+          <div className="section-eyebrow">Control Center</div>
+          <div className="premium-title section-title" style={{ fontSize: 44 }}>Settings</div>
+          <div className="section-copy" style={{ maxWidth: 620 }}>
+            Manage categories and folder types used across the document system.
+          </div>
         </div>
+
         <button onClick={onClose} className="btn-ghost">Close</button>
       </div>
 
-      <div className="panel" style={{ padding: 22 }}>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
-          <button onClick={() => setTab('categories')} className={tab === 'categories' ? 'btn-premium' : 'btn-ghost'}>Work Categories</button>
-          <button onClick={() => setTab('folders')} className={tab === 'folders' ? 'btn-home' : 'btn-ghost'}>Folder Types</button>
+      <div className="modal-grid-2">
+        <div className="panel" style={{ padding: 22 }}>
+          <div className="mono-font" style={{ color: 'var(--yellow)', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Work Categories
+          </div>
+
+          <div style={{ display: 'grid', gap: 12 }}>
+            <input
+              value={categoryName}
+              onChange={(e) => setCategoryName(e.target.value)}
+              placeholder="Category name"
+            />
+            <input
+              value={categoryColor}
+              onChange={(e) => setCategoryColor(e.target.value)}
+              placeholder="Hex color"
+            />
+            <button onClick={createCategory} className="btn-premium" style={{ width: 'fit-content' }}>
+              Add Category
+            </button>
+          </div>
+
+          <div style={{ marginTop: 18, display: 'grid', gap: 10 }}>
+            {loading ? (
+              <div style={{ color: 'var(--muted)' }}>Loading…</div>
+            ) : (
+              categories.map((c) => (
+                <div key={c.id} className="glass-card" style={{ borderRadius: 18, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: 999,
+                        background: c.color || DEFAULT_CATEGORY_COLOR,
+                        boxShadow: `0 0 14px ${c.color || DEFAULT_CATEGORY_COLOR}`,
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 700 }}>{c.name}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>{c.color || DEFAULT_CATEGORY_COLOR}</div>
+                    </div>
+                  </div>
+
+                  <button onClick={() => deleteCategory(c.id)} className="btn-danger">Delete</button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        {error && <div style={{ marginBottom: 16, borderRadius: 14, padding: '12px 14px', background: 'rgba(255,107,129,0.08)', border: '1px solid rgba(255,107,129,0.2)', color: '#ffdce2', fontSize: 13 }}>{error}</div>}
+        <div className="panel" style={{ padding: 22 }}>
+          <div className="mono-font" style={{ color: 'var(--yellow)', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Folder Types
+          </div>
 
-        {tab === 'categories' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 22 }}>
-            <div className="glass-card" style={{ borderRadius: 24, padding: 18 }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 12 }}>Add category</div>
-              <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="e.g. Joint Venture" />
-              <div style={{ marginTop: 14, marginBottom: 10, color: 'var(--muted)', fontSize: 12 }}>Choose color</div>
-              <ColorPicker value={catColor} onChange={setCatColor} />
-              <button onClick={addCategory} disabled={saving} className="btn-premium" style={{ marginTop: 18, width: '100%' }}>{saving ? 'SAVING…' : 'ADD CATEGORY'}</button>
+          <div style={{ display: 'grid', gap: 12 }}>
+            <input
+              value={folderName}
+              onChange={(e) => setFolderName(e.target.value)}
+              placeholder="Folder type name"
+            />
+            <input
+              value={folderKey}
+              onChange={(e) => setFolderKey(e.target.value)}
+              placeholder="Folder key"
+            />
+            <div className="modal-grid-2">
+              <input
+                value={folderIcon}
+                onChange={(e) => setFolderIcon(e.target.value)}
+                placeholder="Icon"
+              />
+              <input
+                value={folderColor}
+                onChange={(e) => setFolderColor(e.target.value)}
+                placeholder="Hex color"
+              />
             </div>
-            <div style={{ display: 'grid', gap: 12 }}>
-              {categories.map((cat) => (
-                <div key={cat.id} className="glass-card" style={{ borderRadius: 20, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ width: 14, height: 14, borderRadius: '50%', background: cat.color, boxShadow: `0 0 18px ${cat.color}` }} />
+
+            <button onClick={createFolderType} className="btn-premium" style={{ width: 'fit-content' }}>
+              Add Folder Type
+            </button>
+          </div>
+
+          <div style={{ marginTop: 18, display: 'grid', gap: 10 }}>
+            {loading ? (
+              <div style={{ color: 'var(--muted)' }}>Loading…</div>
+            ) : (
+              folderTypes.map((f) => (
+                <div key={f.id} className="glass-card" style={{ borderRadius: 18, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>{f.icon || '📁'}</span>
                     <div>
-                      <div style={{ fontWeight: 800 }}>{cat.name}</div>
-                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>{cat.color}</div>
+                      <div style={{ fontWeight: 700 }}>{f.name}</div>
+                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>
+                        {f.key} · {f.color || '#ff355e'}
+                      </div>
                     </div>
                   </div>
-                  <button onClick={() => deleteCategory(cat.id)} className="btn-danger">Delete</button>
+
+                  <button onClick={() => deleteFolderType(f.id)} className="btn-danger">Delete</button>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '430px 1fr', gap: 22 }}>
-            <div className="glass-card" style={{ borderRadius: 24, padding: 18 }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 12 }}>Add folder type</div>
-              <input value={ftName} onChange={(e) => setFtName(e.target.value)} placeholder="e.g. Safety Reports" />
-              <div style={{ marginTop: 14, color: 'var(--muted)', fontSize: 12, marginBottom: 8 }}>Choose icon</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {ICONS.map((icon) => (
-                  <button key={icon} onClick={() => setFtIcon(icon)} style={{ width: 42, height: 42, borderRadius: 12, border: `1px solid ${ftIcon === icon ? 'var(--accent-3)' : 'var(--border)'}`, background: ftIcon === icon ? 'var(--accent-purple-soft)' : 'rgba(255,255,255,0.03)', cursor: 'pointer', fontSize: 20 }}>{icon}</button>
-                ))}
-              </div>
-              <div style={{ marginTop: 14, color: 'var(--muted)', fontSize: 12, marginBottom: 8 }}>Choose color</div>
-              <ColorPicker value={ftColor} onChange={setFtColor} />
-              <button onClick={addFolderType} disabled={saving} className="btn-home" style={{ marginTop: 18, width: '100%' }}>{saving ? 'SAVING…' : 'ADD FOLDER TYPE'}</button>
-            </div>
-            <div style={{ display: 'grid', gap: 12 }}>
-              {folderTypes.map((ft) => (
-                <div key={ft.id} className="glass-card" style={{ borderRadius: 20, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ width: 46, height: 46, borderRadius: 16, background: `${ft.color}20`, display: 'grid', placeItems: 'center', fontSize: 24, boxShadow: `0 0 18px ${ft.color}24` }}>{ft.icon}</div>
-                    <div>
-                      <div style={{ fontWeight: 800 }}>{ft.name}</div>
-                      <div style={{ color: 'var(--muted)', fontSize: 12 }}>{ft.key} · {ft.color}</div>
-                    </div>
-                  </div>
-                  <button onClick={() => deleteFolderType(ft.id)} className="btn-danger">Delete</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
