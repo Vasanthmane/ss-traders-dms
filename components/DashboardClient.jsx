@@ -55,9 +55,7 @@ export default function DashboardClient({ session }) {
     }
   }, []);
 
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -70,6 +68,12 @@ export default function DashboardClient({ session }) {
     setActiveWorkId(null);
     setActiveFolder(null);
     fetchAll();
+  }
+
+  function goHome() {
+    setPanel(null);
+    setActiveWorkId(null);
+    setActiveFolder(null);
   }
 
   function getCatColor(type) {
@@ -92,52 +96,52 @@ export default function DashboardClient({ session }) {
     .map((w) => ({ ...w, count: Object.values(w.fileCounts || {}).reduce((a, b) => a + b, 0) }))
     .sort((a, b) => b.count - a.count)[0];
 
-  const shellBtn = (active, color) => ({
-    padding: '10px 14px',
-    borderRadius: 14,
+  const navButton = (active, background) => ({
+    padding: '11px 15px',
+    borderRadius: 16,
     fontSize: 11,
     fontWeight: 800,
-    letterSpacing: '0.09em',
+    letterSpacing: '0.1em',
     cursor: 'pointer',
     color: active ? '#fff' : 'var(--text-2)',
-    border: `1px solid ${active ? color : 'var(--border)'}`,
-    background: active ? `linear-gradient(135deg, ${color}, rgba(255,255,255,0.1))` : 'rgba(255,255,255,0.03)',
-    boxShadow: active ? `0 12px 26px ${color}30` : 'none',
+    border: `1px solid ${active ? background : 'var(--border)'}`,
+    background: active ? `linear-gradient(135deg, ${background}, rgba(255,255,255,0.12))` : 'rgba(255,255,255,0.04)',
+    boxShadow: active ? `0 16px 34px ${background}30` : 'none',
     transition: 'all .18s ease',
   });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
       <header style={{
-        background: 'rgba(9,11,19,0.88)',
+        background: 'linear-gradient(180deg, rgba(8,13,29,0.92), rgba(8,13,29,0.78))',
         borderBottom: '1px solid var(--border)',
-        height: 78,
-        padding: '0 22px',
+        height: 84,
+        padding: '0 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         backdropFilter: 'blur(20px)',
-        boxShadow: '0 8px 28px rgba(0,0,0,0.26)',
-        position: 'relative',
+        boxShadow: '0 12px 34px rgba(0,0,0,0.28)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg, #fff3cb 0%, #d4a84a 45%, #f3cf73 100%)', color: '#171106', display: 'grid', placeItems: 'center', fontWeight: 900, fontSize: 18, boxShadow: 'var(--shadow-gold)' }}>SST</div>
+          <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg, #fff0be 0%, #ffd166 42%, #ffb703 100%)', color: '#171106', display: 'grid', placeItems: 'center', fontWeight: 900, fontSize: 18, boxShadow: 'var(--shadow-gold)' }}>SST</div>
           <div>
-            <div className="premium-title gold-text" style={{ fontSize: 30, fontWeight: 700 }}>S S Traders</div>
+            <div className="premium-title gold-text" style={{ fontSize: 30, fontWeight: 700 }}>SS Traders</div>
             <div style={{ color: 'var(--muted)', fontSize: 10, letterSpacing: '0.34em', textTransform: 'uppercase' }}>Document Management Suite</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="glass-card" style={{ borderRadius: 14, padding: '10px 14px', color: 'var(--accent)', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em' }}>{time}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button onClick={goHome} className="btn-home">⌂ HOME</button>
+          <div className="glass-card" style={{ borderRadius: 16, padding: '10px 14px', color: 'var(--accent)', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em' }}>{time}</div>
           {session.role === 'admin' && (
             <>
-              <button onClick={() => setPanel(panel === 'settings' ? null : 'settings')} style={shellBtn(panel === 'settings', 'rgba(212,168,74,0.9)')}>⚙ SETTINGS</button>
-              <button onClick={() => setPanel(panel === 'users' ? null : 'users')} style={shellBtn(panel === 'users', 'rgba(139,92,246,0.9)')}>👥 USERS</button>
+              <button onClick={() => setPanel(panel === 'settings' ? null : 'settings')} style={navButton(panel === 'settings', 'rgba(56,189,248,0.95)')}>⚙ SETTINGS</button>
+              <button onClick={() => setPanel(panel === 'users' ? null : 'users')} style={navButton(panel === 'users', 'rgba(139,92,246,0.95)')}>👥 USERS</button>
             </>
           )}
           <div className="glass-card" style={{ borderRadius: 999, padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: session.role === 'admin' ? 'var(--accent)' : 'var(--accent-2)', boxShadow: session.role === 'admin' ? '0 0 16px rgba(212,168,74,.55)' : '0 0 16px rgba(74,222,128,.55)' }} />
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: session.role === 'admin' ? 'var(--accent)' : 'var(--accent-2)', boxShadow: session.role === 'admin' ? '0 0 16px rgba(255,209,102,.55)' : '0 0 16px rgba(87,242,135,.55)' }} />
             <span style={{ color: 'var(--text-2)' }}>{session.name}</span>
             <span style={{ color: 'var(--muted-2)' }}>/</span>
             <span style={{ color: session.role === 'admin' ? 'var(--accent)' : 'var(--accent-2)', fontWeight: 800, letterSpacing: '0.08em' }}>{session.role.toUpperCase()}</span>
@@ -146,15 +150,15 @@ export default function DashboardClient({ session }) {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '305px 1fr', flex: 1, overflow: 'hidden' }}>
-        <aside style={{ padding: 18, borderRight: '1px solid var(--border)', background: 'linear-gradient(180deg, rgba(12,15,26,0.95), rgba(9,11,18,0.92))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div className="glass-card" style={{ borderRadius: 24, padding: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', flex: 1, overflow: 'hidden' }}>
+        <aside style={{ padding: 18, borderRight: '1px solid var(--border)', background: 'linear-gradient(180deg, rgba(9,14,30,0.94), rgba(6,10,23,0.9))', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="panel" style={{ padding: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
               <div>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em', color: 'var(--muted)' }}>Workspace</div>
-                <div className="premium-title" style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>Works library</div>
+                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.24em', color: 'var(--muted)' }}>Workspace</div>
+                <div className="premium-title" style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>Works library</div>
               </div>
-              <div style={{ minWidth: 34, height: 34, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'rgba(212,168,74,0.12)', color: 'var(--accent)', fontWeight: 800 }}>{filtered.length}</div>
+              <div style={{ minWidth: 38, height: 38, borderRadius: 14, display: 'grid', placeItems: 'center', background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 900 }}>{filtered.length}</div>
             </div>
 
             <div style={{ position: 'relative', marginBottom: 12 }}>
@@ -163,86 +167,90 @@ export default function DashboardClient({ session }) {
             </div>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={() => setCatFilter('all')} style={shellBtn(catFilter === 'all', 'rgba(212,168,74,0.92)')}>ALL</button>
+              <button onClick={() => setCatFilter('all')} style={navButton(catFilter === 'all', 'rgba(255,209,102,0.95)')}>ALL</button>
               {categories.map((cat) => (
-                <button key={cat.id} onClick={() => setCatFilter(cat.name)} style={shellBtn(catFilter === cat.name, cat.color)}>{cat.name}</button>
+                <button key={cat.id} onClick={() => setCatFilter(cat.name)} style={navButton(catFilter === cat.name, cat.color)}>{cat.name}</button>
               ))}
             </div>
 
-            <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', color: 'var(--muted)', fontSize: 12 }}>
+            <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 18, background: 'rgba(255,255,255,0.035)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', color: 'var(--muted)', fontSize: 12 }}>
               <span>Quick focus</span>
               <span style={{ color: 'var(--text-2)' }}>⌘ / Ctrl + K</span>
             </div>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', marginTop: 14, paddingRight: 4 }}>
+          <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4 }}>
             {loading ? (
-              <div className="glass-card" style={{ borderRadius: 24, padding: 18, color: 'var(--muted)' }}>Loading works…</div>
+              <div className="panel" style={{ padding: 18, color: 'var(--muted)' }}>Loading works…</div>
             ) : filtered.length === 0 ? (
-              <div className="glass-card" style={{ borderRadius: 24, padding: 22, textAlign: 'center' }}>
+              <div className="panel" style={{ padding: 22, textAlign: 'center' }}>
                 <div style={{ fontSize: 34 }}>📂</div>
                 <div style={{ marginTop: 10, fontWeight: 800 }}>No works found</div>
                 <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 6 }}>Adjust filters or add a new work to get started.</div>
               </div>
-            ) : filtered.map((w, i) => {
-              const count = Object.values(w.fileCounts || {}).reduce((a, b) => a + b, 0);
-              const active = activeWorkId === w.id;
-              const catColor = getCatColor(w.type);
-              return (
-                <button key={w.id} onClick={() => { setActiveWorkId(w.id); setActiveFolder(null); }} className="fade-up" style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  marginBottom: 10,
-                  padding: 16,
-                  borderRadius: 20,
-                  border: `1px solid ${active ? catColor : 'var(--border)'}`,
-                  background: active ? `linear-gradient(135deg, ${catColor}18, rgba(255,255,255,0.03))` : 'rgba(255,255,255,0.025)',
-                  boxShadow: active ? `0 14px 32px ${catColor}1f` : 'none',
-                  transition: 'all .18s ease',
-                  cursor: 'pointer',
-                  animationDelay: `${i * 0.04}s`,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: catColor, boxShadow: `0 0 16px ${catColor}` }} />
-                        <span style={{ fontSize: 11, color: catColor, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{w.type}</span>
+            ) : (
+              filtered.map((w, i) => {
+                const count = Object.values(w.fileCounts || {}).reduce((a, b) => a + b, 0);
+                const active = activeWorkId === w.id;
+                const catColor = getCatColor(w.type);
+                return (
+                  <button
+                    key={w.id}
+                    onClick={() => { setPanel(null); setActiveWorkId(w.id); setActiveFolder(null); }}
+                    className="fade-up"
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '16px 14px',
+                      borderRadius: 22,
+                      marginBottom: 10,
+                      border: `1px solid ${active ? catColor : 'var(--border)'}`,
+                      background: active ? `linear-gradient(135deg, ${catColor}18, rgba(255,255,255,0.03))` : 'rgba(255,255,255,0.03)',
+                      boxShadow: active ? `0 18px 34px ${catColor}18` : 'none',
+                      cursor: 'pointer',
+                      animationDelay: `${i * 0.03}s`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 10, color: catColor, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 800 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: catColor, boxShadow: `0 0 16px ${catColor}` }} />{w.type}
+                        </div>
+                        <div style={{ fontWeight: 800, marginTop: 8, fontSize: 16, color: active ? '#fff' : 'var(--text)' }}>{w.name}</div>
+                        <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 6 }}>{w.location || 'Location not set'}</div>
                       </div>
-                      <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.name}</div>
-                      <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 5 }}>{w.location || 'Location not set'}</div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: active ? catColor : 'var(--text-2)' }}>{count}</div>
+                        <div style={{ color: 'var(--muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.16em' }}>Files</div>
+                      </div>
                     </div>
-                    <div style={{ minWidth: 54, textAlign: 'right' }}>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: active ? 'var(--accent-4)' : 'var(--text-2)' }}>{count}</div>
-                      <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.16em' }}>files</div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })
+            )}
           </div>
 
-          <div className="glass-card" style={{ borderRadius: 22, padding: 16, marginTop: 14 }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--muted)', marginBottom: 6 }}>Premium shortcuts</div>
-            <div style={{ display: 'grid', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-2)', fontSize: 13 }}><span>Top work</span><strong style={{ color: 'var(--accent)' }}>{topWork?.name || '—'}</strong></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-2)', fontSize: 13 }}><span>Total files</span><strong style={{ color: 'var(--accent-2)' }}>{globalTotal}</strong></div>
+          <div className="panel" style={{ padding: 16 }}>
+            <div style={{ color: 'var(--muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.18em' }}>Premium shortcuts</div>
+            <div style={{ display: 'grid', gap: 8, marginTop: 12, fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Top work</span><strong style={{ color: 'var(--accent)' }}>{topWork?.name || '—'}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total files</span><strong style={{ color: 'var(--accent-2)' }}>{globalTotal}</strong></div>
             </div>
-            <button onClick={() => setShowAddWork(true)} className="btn-premium" style={{ width: '100%', marginTop: 14 }}>+ Add New Work</button>
+            <button onClick={() => setShowAddWork(true)} className="btn-premium" style={{ width: '100%', marginTop: 16 }}>+ Add New Work</button>
           </div>
         </aside>
 
-        <main style={{ overflowY: 'auto', padding: 22 }}>
-          {panel === 'users' && session.role === 'admin' ? (
-            <UsersPanel works={works} onClose={() => setPanel(null)} />
-          ) : panel === 'settings' && session.role === 'admin' ? (
+        <main style={{ padding: 20, overflowY: 'auto' }}>
+          {panel === 'settings' ? (
             <SettingsPanel categories={categories} folderTypes={folderTypes} onClose={() => setPanel(null)} onRefresh={fetchAll} />
+          ) : panel === 'users' ? (
+            <UsersPanel works={works} onClose={() => setPanel(null)} />
           ) : !activeWork ? (
-            <div className="panel fade-up" style={{ minHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 28, textAlign: 'center' }}>
-              <div style={{ width: 96, height: 96, borderRadius: 28, background: 'linear-gradient(135deg, rgba(74,222,128,0.18), rgba(139,92,246,0.18))', display: 'grid', placeItems: 'center', fontSize: 48, boxShadow: 'var(--shadow-purple)', animation: 'softFloat 5s ease-in-out infinite' }}>📁</div>
-              <div className="premium-title aurora-text" style={{ fontSize: 56, fontWeight: 700, marginTop: 22 }}>Choose a work</div>
-              <div style={{ color: 'var(--muted)', fontSize: 16, marginTop: 10, maxWidth: 520 }}>Browse your works from the left, filter by category, or create a new premium folder structure for an upcoming project.</div>
-
-              <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, width: '100%', maxWidth: 820 }}>
+            <div className="panel fade-up" style={{ minHeight: 'calc(100vh - 146px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 30, textAlign: 'center' }}>
+              <div style={{ width: 96, height: 96, borderRadius: 28, background: 'linear-gradient(135deg, rgba(87,242,135,0.20), rgba(139,92,246,0.22), rgba(56,189,248,0.18))', display: 'grid', placeItems: 'center', fontSize: 48, boxShadow: 'var(--shadow-purple)', animation: 'softFloat 5s ease-in-out infinite' }}>✨</div>
+              <div className="premium-title neon-text" style={{ fontSize: 58, fontWeight: 700, marginTop: 22 }}>Choose a work</div>
+              <div style={{ color: 'var(--muted)', fontSize: 16, marginTop: 10, maxWidth: 560 }}>Open an existing work from the left or start a new one. The whole shell is now brighter, sharper, and built to feel like a premium internal control system.</div>
+              <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, width: '100%', maxWidth: 860 }}>
                 {[
                   { label: 'Works', value: works.length, color: 'var(--accent)' },
                   { label: 'Files', value: globalTotal, color: 'var(--accent-2)' },
@@ -250,31 +258,31 @@ export default function DashboardClient({ session }) {
                   { label: 'Folder Types', value: folderTypes.length, color: 'var(--accent-4)' },
                 ].map((item) => (
                   <div key={item.label} className="glass-card" style={{ borderRadius: 24, padding: '22px 16px' }}>
-                    <div style={{ fontSize: 34, fontWeight: 800, color: item.color }}>{item.value}</div>
+                    <div style={{ fontSize: 36, fontWeight: 900, color: item.color, textShadow: `0 0 18px ${item.color}` }}>{item.value}</div>
                     <div style={{ marginTop: 8, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.18em', fontSize: 11 }}>{item.label}</div>
                   </div>
                 ))}
               </div>
-
-              <div style={{ display: 'flex', gap: 12, marginTop: 26 }}>
+              <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
                 <button onClick={() => setShowAddWork(true)} className="btn-premium">Create Work</button>
-                {session.role === 'admin' && <button onClick={() => setPanel('settings')} className="btn-secondary">Open Settings</button>}
+                {session.role === 'admin' && <button onClick={() => setPanel('settings')} className="btn-home">Open Settings</button>}
               </div>
             </div>
           ) : (
             <div className="fade-up">
-              <div className="panel" style={{ padding: 24, borderRadius: 28, marginBottom: 18 }}>
+              <div className="panel" style={{ padding: 24, marginBottom: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 999, background: `${getCatColor(activeWork.type)}18`, border: `1px solid ${getCatColor(activeWork.type)}33`, color: getCatColor(activeWork.type), fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{activeWork.type}</div>
-                    <h1 className="premium-title" style={{ fontSize: 42, fontWeight: 700, marginTop: 14 }}>{activeWork.name}</h1>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 999, background: `${getCatColor(activeWork.type)}18`, border: `1px solid ${getCatColor(activeWork.type)}33`, color: getCatColor(activeWork.type), fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{activeWork.type}</div>
+                    <h1 className="premium-title" style={{ fontSize: 44, fontWeight: 700, marginTop: 14 }}>{activeWork.name}</h1>
                     <div style={{ marginTop: 10, display: 'flex', gap: 18, flexWrap: 'wrap', color: 'var(--muted)', fontSize: 13 }}>
                       <span>LOA: <strong style={{ color: 'var(--text-2)' }}>{activeWork.loa || 'Not set'}</strong></span>
                       <span>Location: <strong style={{ color: 'var(--text-2)' }}>{activeWork.location || 'Not set'}</strong></span>
                       <span>Files: <strong style={{ color: 'var(--accent-2)' }}>{totalFiles}</strong></span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button onClick={goHome} className="btn-home">Home</button>
                     <button onClick={() => setShowAddWork(true)} className="btn-premium">+ Add Work</button>
                     {session.role === 'admin' && <button onClick={() => handleDeleteWork(activeWork.id)} className="btn-danger">Delete Work</button>}
                   </div>
@@ -284,12 +292,12 @@ export default function DashboardClient({ session }) {
                   {[
                     { label: 'Total Files', value: totalFiles, color: 'var(--accent)' },
                     { label: 'Folder Types', value: folderTypes.length, color: 'var(--accent-3)' },
-                    { label: 'Top Category', value: activeWork.type, color: getCatColor(activeWork.type) },
-                    { label: 'Ready State', value: totalFiles > 0 ? 'Active' : 'Empty', color: totalFiles > 0 ? 'var(--accent-2)' : 'var(--text-2)' },
+                    { label: 'Category', value: activeWork.type, color: getCatColor(activeWork.type) },
+                    { label: 'Status', value: totalFiles > 0 ? 'Active' : 'Empty', color: totalFiles > 0 ? 'var(--accent-2)' : 'var(--text-2)' },
                   ].map((item) => (
                     <div key={item.label} className="glass-card" style={{ borderRadius: 20, padding: '18px 16px' }}>
                       <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.14em' }}>{item.label}</div>
-                      <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: item.color }}>{item.value}</div>
+                      <div style={{ fontSize: 30, fontWeight: 900, marginTop: 8, color: item.color }}>{item.value}</div>
                     </div>
                   ))}
                 </div>
