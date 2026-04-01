@@ -75,7 +75,7 @@ export default function SettingsPanel({ categories, folderTypes, onClose, onRefr
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:28 }}>
         <div>
           <div style={{ fontSize:9, color:'var(--accent)', letterSpacing:4, fontWeight:700, marginBottom:4 }}>ADMIN</div>
-          <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:28, letterSpacing:2, color:'var(--text)' }}>Settings</div>
+          <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:28, letterSpacing:2, color:'var(--text)' }}>Settings</div>
         </div>
         <button onClick={onClose} style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:8, padding:'8px 16px', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕ Close</button>
       </div>

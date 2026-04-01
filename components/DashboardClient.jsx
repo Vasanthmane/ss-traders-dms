@@ -92,11 +92,11 @@ export default function DashboardClient({ session }) {
           <div style={{
             width:38, height:38, background:'linear-gradient(135deg, #e8a020, #f5c842)',
             borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center',
-            fontFamily:"'Bebas Neue', sans-serif", fontSize:15, color:'#000', fontWeight:900,
+            fontFamily:"'Space Grotesk', sans-serif", fontSize:15, color:'#000', fontWeight:900,
             boxShadow:'0 4px 16px rgba(232,160,32,0.3)',
           }}>SST</div>
           <div>
-            <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:18, letterSpacing:3, color:'var(--text)' }}>S S TRADERS</div>
+            <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:18, letterSpacing:3, color:'var(--text)' }}>S S TRADERS</div>
             <div style={{ fontSize:8, color:'var(--muted)', letterSpacing:4 }}>DOCUMENT MANAGEMENT SYSTEM</div>
           </div>
         </div>
@@ -189,7 +189,7 @@ export default function DashboardClient({ session }) {
             <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:28 }}>
               <div style={{ fontSize:72, filter:'drop-shadow(0 0 20px rgba(232,160,32,0.25))' }}>🏗️</div>
               <div style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:32, letterSpacing:4, color:'var(--text)' }}>SELECT A WORK</div>
+                <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:32, letterSpacing:4, color:'var(--text)' }}>SELECT A WORK</div>
                 <div style={{ fontSize:13, color:'var(--muted)', marginTop:8 }}>Choose from the sidebar or add a new work</div>
               </div>
               <div style={{ display:'flex', gap:14, flexWrap:'wrap', justifyContent:'center' }}>
@@ -200,7 +200,7 @@ export default function DashboardClient({ session }) {
                   { v:folderTypes.length, l:'Folder Types', c:'var(--muted)' },
                 ].map(({v,l,c}) => (
                   <div key={l} style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 28px', textAlign:'center', boxShadow:'0 4px 24px rgba(0,0,0,0.2)' }}>
-                    <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:38, color:c, lineHeight:1 }}>{v}</div>
+                    <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:38, color:c, lineHeight:1 }}>{v}</div>
                     <div style={{ fontSize:9, color:'var(--muted)', letterSpacing:3, marginTop:5 }}>{l.toUpperCase()}</div>
                   </div>
                 ))}
@@ -215,7 +215,7 @@ export default function DashboardClient({ session }) {
                     {activeWork.loa && <span style={{ fontSize:11, color:'var(--muted)', fontFamily:"'IBM Plex Mono',monospace" }}>LOA: {activeWork.loa}</span>}
                     {activeWork.location && <span style={{ fontSize:11, color:'var(--muted)' }}>📍 {activeWork.location}</span>}
                   </div>
-                  <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:30, letterSpacing:2, lineHeight:1.1, color:'var(--text)' }}>{activeWork.name}</div>
+                  <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:30, letterSpacing:2, lineHeight:1.1, color:'var(--text)' }}>{activeWork.name}</div>
                   {activeWork.notes && <div style={{ fontSize:12, color:'var(--muted)', marginTop:6, maxWidth:600 }}>{activeWork.notes}</div>}
                 </div>
                 {session.role === 'admin' && (
@@ -232,7 +232,7 @@ export default function DashboardClient({ session }) {
                 ].map(({v,l,c,icon}) => (
                   <div key={l} style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden' }}>
                     <div style={{ position:'absolute', right:12, top:12, fontSize:20, opacity:0.1 }}>{icon}</div>
-                    <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:26, color:c, lineHeight:1 }}>{v}</div>
+                    <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:26, color:c, lineHeight:1 }}>{v}</div>
                     <div style={{ fontSize:9, color:'var(--muted)', letterSpacing:2, marginTop:4 }}>{l.toUpperCase()}</div>
                   </div>
                 ))}

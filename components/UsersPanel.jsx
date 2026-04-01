@@ -63,7 +63,7 @@ export default function UsersPanel({ works, onClose }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <div style={{ fontSize: 10, letterSpacing: 3, color: 'var(--muted)', marginBottom: 4 }}>ADMIN</div>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, letterSpacing: 1.5 }}>User Management</div>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, letterSpacing: 1.5 }}>User Management</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => setShowAdd(!showAdd)} style={{
@@ -85,7 +85,7 @@ export default function UsersPanel({ works, onClose }) {
           background: 'var(--card)', border: '1px solid var(--border)',
           borderRadius: 12, padding: '20px 20px 16px', marginBottom: 20,
         }}>
-          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1.5, marginBottom: 16 }}>New User</div>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, letterSpacing: 1.5, marginBottom: 16 }}>New User</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
             <div>
               <label style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: 2, display: 'block', marginBottom: 5 }}>NAME *</label>
@@ -118,7 +118,7 @@ export default function UsersPanel({ works, onClose }) {
                 <button key={w.id} onClick={() => setForm(f => ({ ...f, workIds: toggleWorkId(f.workIds, w.id) }))} style={{
                   padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
                   border: `1px solid ${form.workIds.includes(w.id) ? 'var(--accent)' : 'var(--border)'}`,
-                  background: form.workIds.includes(w.id) ? 'rgba(245,166,35,0.15)' : 'var(--surface)',
+                  background: form.workIds.includes(w.id) ? 'rgba(245,166,35,0.15)' : 'var(--card)',
                   color: form.workIds.includes(w.id) ? 'var(--accent)' : 'var(--muted)',
                   transition: 'all 0.15s',
                 }}>
@@ -182,7 +182,7 @@ export default function UsersPanel({ works, onClose }) {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => { setEditingUser(editingUser === u.id ? null : u.id); setEditWorkIds(u.work_ids || []); }} style={{
-                    background: 'var(--surface)', border: '1px solid var(--border)',
+                    background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer', color: 'var(--text)',
                   }}>
                     {editingUser === u.id ? '✕ Cancel' : '⚙ Works'}
@@ -219,7 +219,7 @@ export default function UsersPanel({ works, onClose }) {
                       <button key={w.id} onClick={() => setEditWorkIds(ids => toggleWorkId(ids, w.id))} style={{
                         padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
                         border: `1px solid ${editWorkIds.includes(w.id) ? 'var(--accent)' : 'var(--border)'}`,
-                        background: editWorkIds.includes(w.id) ? 'rgba(245,166,35,0.15)' : 'var(--surface)',
+                        background: editWorkIds.includes(w.id) ? 'rgba(245,166,35,0.15)' : 'var(--card)',
                         color: editWorkIds.includes(w.id) ? 'var(--accent)' : 'var(--muted)',
                         transition: 'all 0.15s',
                       }}>

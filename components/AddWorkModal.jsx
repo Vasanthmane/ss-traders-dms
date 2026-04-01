@@ -31,14 +31,14 @@ export default function AddWorkModal({ onClose, onCreated, categories = [] }) {
       zIndex: 2000, padding: 24, backdropFilter: 'blur(8px)',
     }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="fade-up" style={{
-        background: 'var(--surface)', border: '1px solid var(--border)',
+        background: 'var(--card)', border: '1px solid var(--border)',
         borderRadius: 16, padding: '28px', width: '100%', maxWidth: 480,
         boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
       }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
           <div>
             <div style={{ fontSize:9, color:'var(--accent)', letterSpacing:3, marginBottom:4, fontWeight:700 }}>NEW ENTRY</div>
-            <div style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:24, letterSpacing:2, color:'var(--text)' }}>Add Work</div>
+            <div style={{ fontFamily:"'Space Grotesk', sans-serif", fontSize:24, letterSpacing:2, color:'var(--text)' }}>Add Work</div>
           </div>
           <button onClick={onClose} style={{ background:'transparent', border:'none', color:'var(--muted)', fontSize:20, cursor:'pointer', lineHeight:1 }}>✕</button>
         </div>
