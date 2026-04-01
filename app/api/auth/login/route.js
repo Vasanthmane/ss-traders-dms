@@ -3,39 +3,35 @@ import bcrypt from 'bcryptjs';
 import { query } from '@/lib/db';
 import { signToken, setTokenCookie } from '@/lib/auth';
 
+function normalizeLoginId(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 export async function POST(req) {
   try {
-    const { username, password } = await req.json();
+    const body = await req.json();
+    const username = normalizeLoginId(body.username || body.email || body.loginId);
+    const password = body.password;
 
     if (!username || !password) {
-      return NextResponse.json(
-        { error: 'Username and password required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Login ID and password are required' }, { status: 400 });
     }
 
-    // Login using username (stored in email column)
+    const candidateEmail = username.includes('@') ? username : `${username}@sstraders.com`;
+
     const rows = await query(
-      'SELECT * FROM users WHERE email = $1',
-      [username.toLowerCase()]
+      'SELECT * FROM users WHERE lower(email) = $1 OR lower(email) = $2 LIMIT 1',
+      [username, candidateEmail]
     );
 
     const user = rows[0];
-
     if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
     const valid = await bcrypt.compare(password, user.password);
-
     if (!valid) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
     const token = await signToken({
@@ -47,21 +43,13 @@ export async function POST(req) {
 
     const response = NextResponse.json({
       ok: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        role: user.role,
-      },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
 
     setTokenCookie(response, token);
-
     return response;
   } catch (e) {
     console.error(e);
-    return NextResponse.json(
-      { error: 'Server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
