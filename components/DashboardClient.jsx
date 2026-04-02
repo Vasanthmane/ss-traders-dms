@@ -1,56 +1,45 @@
 'use client';
-
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import FolderView from './FolderView';
 import AddWorkModal from './AddWorkModal';
 import UsersPanel from './UsersPanel';
 import SettingsPanel from './SettingsPanel';
 
-const FOLDER_DEFS = [
-  { key: 'quo',  name: 'Quotation',      icon: '📋', color: '#ff355e' },
-  { key: 'ten',  name: 'Tender',         icon: '📁', color: '#8b5cf6' },
-  { key: 'inv',  name: 'Invoice',        icon: '🧾', color: '#f7c948' },
-  { key: 'bill', name: 'Bills',          icon: '💳', color: '#ff5f7f' },
-  { key: 'draw', name: 'Drawings',       icon: '📐', color: '#c084fc' },
-  { key: 'cert', name: 'Certificates',   icon: '🏅', color: '#ffd86b' },
-  { key: 'cor',  name: 'Correspondence', icon: '✉️', color: '#ffffff' },
-  { key: 'misc', name: 'Miscellaneous',  icon: '📎', color: '#b98cff' },
-];
-
 export default function DashboardClient({ session }) {
   const router = useRouter();
-
-  const [works, setWorks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [works, setWorks]             = useState([]);
+  const [categories, setCategories]   = useState([]);
+  const [folderTypes, setFolderTypes] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [search, setSearch]           = useState('');
+  const [catFilter, setCatFilter]     = useState('all');
   const [activeWorkId, setActiveWorkId] = useState(null);
   const [activeFolder, setActiveFolder] = useState(null);
+  const [panel, setPanel]             = useState(null); // 'users' | 'settings' | null
   const [showAddWork, setShowAddWork] = useState(false);
-  const [showUsers, setShowUsers] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [tick, setTick] = useState(Date.now());
+  const [time, setTime]               = useState('');
 
   useEffect(() => {
-    const t = setInterval(() => setTick(Date.now()), 1000);
-    return () => clearInterval(t);
+    const tick = () => setTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    tick(); const t = setInterval(tick, 1000); return () => clearInterval(t);
   }, []);
 
-  const fetchWorks = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/works', { cache: 'no-store' });
-      const data = await res.json();
-      setWorks(Array.isArray(data) ? data : []);
-    } finally {
-      setLoading(false);
-    }
+      const [w, c, f] = await Promise.all([
+        fetch('/api/works').then(r => r.json()),
+        fetch('/api/categories').then(r => r.json()),
+        fetch('/api/folder-types').then(r => r.json()),
+      ]);
+      setWorks(Array.isArray(w) ? w : []);
+      setCategories(Array.isArray(c) ? c : []);
+      setFolderTypes(Array.isArray(f) ? f : []);
+    } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    fetchWorks();
-  }, [fetchWorks]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -58,335 +47,342 @@ export default function DashboardClient({ session }) {
   }
 
   async function handleDeleteWork(id) {
-    if (!confirm('Delete this work and all its files?')) return;
+    if (!confirm('Delete this work and ALL its files?')) return;
     await fetch(`/api/works/${id}`, { method: 'DELETE' });
-    setActiveWorkId(null);
-    setActiveFolder(null);
-    await fetchWorks();
+    setActiveWorkId(null); setActiveFolder(null); fetchAll();
   }
 
-  const filteredWorks = useMemo(() => {
-    return works.filter((w) => {
-      const matchesType = typeFilter === 'all' || w.type === typeFilter;
-      const q = search.trim().toLowerCase();
-      const matchesSearch =
-        !q ||
-        (w.name || '').toLowerCase().includes(q) ||
-        (w.location || '').toLowerCase().includes(q) ||
-        (w.loa || '').toLowerCase().includes(q);
-      return matchesType && matchesSearch;
-    });
-  }, [works, search, typeFilter]);
+  function getCatColor(type) {
+    const c = categories.find(x => x.name.toLowerCase() === (type || '').toLowerCase());
+    return c?.color || '#6b7694';
+  }
 
-  const activeWork = works.find((w) => w.id === activeWorkId) || null;
-  const totalFiles = activeWork
-    ? Object.values(activeWork.fileCounts || {}).reduce((a, b) => a + b, 0)
-    : 0;
+  const filtered = works.filter(w => {
+    const mc = catFilter === 'all' || w.type.toLowerCase() === catFilter.toLowerCase();
+    const q  = search.toLowerCase();
+    const ms = !q || w.name.toLowerCase().includes(q) || (w.location || '').toLowerCase().includes(q) || (w.loa || '').toLowerCase().includes(q);
+    return mc && ms;
+  });
 
-  const timeStr = new Date(tick).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).toLowerCase();
+  const activeWork      = works.find(w => w.id === activeWorkId) || null;
+  const activeFolderDef = folderTypes.find(f => f.key === activeFolder);
+  const totalFiles      = activeWork ? Object.values(activeWork.fileCounts || {}).reduce((a, b) => a + b, 0) : 0;
+  const globalTotal     = works.reduce((a, w) => a + Object.values(w.fileCounts || {}).reduce((x, y) => x + y, 0), 0);
 
-  const allFilesCount = works.reduce(
-    (sum, w) => sum + Object.values(w.fileCounts || {}).reduce((a, b) => a + b, 0),
-    0
-  );
+  // ── Topbar button ──
+  const NavBtn = ({ id, children, color = 'var(--blue-light)' }) => {
+    const active = panel === id;
+    return (
+      <button onClick={() => setPanel(active ? null : id)} style={{
+        height: 34, padding: '0 14px', borderRadius: 999,
+        background: active ? `${color}18` : 'transparent',
+        border: `1px solid ${active ? color + '55' : 'var(--border)'}`,
+        color: active ? color : 'var(--text-2)',
+        fontSize: 11, fontWeight: 600, letterSpacing: '0.05em',
+        cursor: 'pointer', transition: 'all 0.18s',
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>{children}</button>
+    );
+  };
 
   return (
-    <div className="top-shell">
-      <header className="topbar">
-        <div className="brand-block">
-          <div className="brand-mark">SST</div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
+
+      {/* ── TOPBAR ── */}
+      <header style={{
+        height: 56, padding: '0 20px', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'rgba(13,17,23,0.95)', backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid var(--border)',
+        zIndex: 50,
+      }}>
+        {/* Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 9,
+            background: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 13, color: '#fff',
+            boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+          }}>SST</div>
           <div>
-            <div className="brand-title">SS Traders</div>
-            <div className="brand-subtitle">Document Management Suite</div>
+            <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--text)', lineHeight: 1 }}>SS Traders</div>
+            <div style={{ fontSize: 9, color: 'var(--muted)', letterSpacing: '0.2em' }}>DOCUMENT SUITE</div>
           </div>
         </div>
 
-        <div className="top-actions">
-          <button
-            className="nav-pill home"
-            onClick={() => {
-              setShowUsers(false);
-              setShowSettings(false);
-              setActiveWorkId(null);
-              setActiveFolder(null);
-            }}
-          >
-            ⌂ Home
-          </button>
+        {/* Right controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="mono" style={{
+            height: 34, padding: '0 12px', borderRadius: 999,
+            background: 'rgba(37,99,235,0.07)', border: '1px solid rgba(37,99,235,0.18)',
+            color: 'var(--blue-light)', fontSize: 11,
+            display: 'flex', alignItems: 'center',
+          }}>{time}</div>
 
-          <div className="nav-pill time mono-font">{timeStr}</div>
+          <NavBtn id="settings">⚙ Settings</NavBtn>
+          {session.role === 'admin' && <NavBtn id="users" color="#818cf8">👥 Users</NavBtn>}
 
-          <button
-            className={`nav-pill ${showSettings ? 'active-violet' : ''}`}
-            onClick={() => {
-              setShowSettings(true);
-              setShowUsers(false);
-              setActiveWorkId(null);
-              setActiveFolder(null);
-            }}
-          >
-            ⚙ Settings
-          </button>
-
-          {session.role === 'admin' && (
-            <button
-              className={`nav-pill ${showUsers ? 'active-violet' : ''}`}
-              onClick={() => {
-                setShowUsers(true);
-                setShowSettings(false);
-                setActiveWorkId(null);
-                setActiveFolder(null);
-              }}
-            >
-              👥 Users
-            </button>
-          )}
-
-          <div className="nav-pill user-pill">
-            <span style={{ color: 'var(--yellow)' }}>●</span>
-            <span>{session.name}</span>
-            <span>/</span>
-            <strong>{session.role.toUpperCase()}</strong>
+          <div style={{
+            height: 34, padding: '0 14px', borderRadius: 999,
+            background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontSize: 12, color: 'var(--text-2)',
+          }}>
+            <span className="dot-live" />
+            <span style={{ fontWeight: 600, color: 'var(--text)' }}>{session.name}</span>
+            <span style={{ color: 'var(--border)' }}>|</span>
+            <span className="badge badge-blue" style={{ height: 18 }}>{session.role.toUpperCase()}</span>
           </div>
 
-          <button className="nav-pill signout" onClick={handleLogout}>
-            Sign Out
-          </button>
+          <button onClick={handleLogout} className="btn btn-ghost btn-sm" style={{ borderRadius: 999 }}>Sign Out</button>
         </div>
       </header>
 
-      <div className="layout-body">
-        <aside className="sidebar">
-          <div className="panel sidebar-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
-              <div>
-                <div className="sidebar-section-label">Workspace</div>
-                <div className="sidebar-title">Works library</div>
-              </div>
-              <div className="sidebar-count">{filteredWorks.length}</div>
-            </div>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-            <div style={{ marginTop: 14 }}>
+        {/* ── SIDEBAR ── */}
+        <aside style={{
+          width: 260, flexShrink: 0,
+          display: 'flex', flexDirection: 'column',
+          background: 'rgba(11,13,20,0.98)', borderRight: '1px solid var(--border)',
+          overflow: 'hidden',
+        }}>
+          {/* Search + header */}
+          <div style={{ padding: '14px 12px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.18em' }}>WORKS</span>
+              <span className="badge badge-blue">{filtered.length}</span>
+            </div>
+            <div style={{ position: 'relative' }}>
               <input
-                className="search-input"
-                placeholder="Search works, LOA, location..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search works, LOA, location…"
+                style={{ paddingLeft: 32, height: 36, fontSize: 12, borderRadius: 10 }}
               />
-            </div>
-
-            <div className="filter-row">
-              <button
-                className={`filter-pill ${typeFilter === 'all' ? 'active-yellow' : ''}`}
-                onClick={() => setTypeFilter('all')}
-              >
-                All
-              </button>
-
-              <button
-                className={`filter-pill ${typeFilter === 'proprietor' ? 'active-violet' : ''}`}
-                onClick={() => setTypeFilter('proprietor')}
-              >
-                Proprietor
-              </button>
-
-              <button
-                className={`filter-pill ${typeFilter === 'partnership' ? 'active-violet' : ''}`}
-                onClick={() => setTypeFilter('partnership')}
-              >
-                Partnership
-              </button>
-            </div>
-
-            <div style={{ marginTop: 14 }}>
-              <button className="btn-ghost" style={{ width: '100%', justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
-                <span>Quick focus</span>
-                <span className="mono-font">⌘ / Ctrl + K</span>
-              </button>
+              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14, pointerEvents: 'none' }}>⌕</span>
             </div>
           </div>
 
-          {filteredWorks.length > 0 ? (
-            filteredWorks.slice(0, 4).map((w) => {
-              const count = Object.values(w.fileCounts || {}).reduce((a, b) => a + b, 0);
+          {/* Category filters */}
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              <button onClick={() => setCatFilter('all')} style={{
+                height: 26, padding: '0 10px', borderRadius: 999, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                background: catFilter === 'all' ? 'var(--blue)' : 'transparent',
+                border: `1px solid ${catFilter === 'all' ? 'var(--blue)' : 'var(--border)'}`,
+                color: catFilter === 'all' ? '#fff' : 'var(--muted)',
+                transition: 'all 0.15s',
+              }}>All</button>
+              {categories.map(cat => (
+                <button key={cat.id} onClick={() => setCatFilter(catFilter === cat.name ? 'all' : cat.name)} style={{
+                  height: 26, padding: '0 10px', borderRadius: 999, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                  background: catFilter === cat.name ? cat.color : 'transparent',
+                  border: `1px solid ${catFilter === cat.name ? cat.color : 'var(--border)'}`,
+                  color: catFilter === cat.name ? '#fff' : 'var(--muted)',
+                  transition: 'all 0.15s',
+                }}>{cat.name}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Works list — ALL works shown */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
+            {loading ? (
+              <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Loading…</div>
+            ) : filtered.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>No works found</div>
+            ) : filtered.map((w, i) => {
+              const count    = Object.values(w.fileCounts || {}).reduce((a, b) => a + b, 0);
+              const isActive = activeWorkId === w.id;
+              const cc       = getCatColor(w.type);
               return (
                 <div
                   key={w.id}
-                  className="panel sidebar-mini"
-                  onClick={() => {
-                    setActiveWorkId(w.id);
-                    setShowUsers(false);
-                    setShowSettings(false);
+                  onClick={() => { setActiveWorkId(w.id); setActiveFolder(null); setPanel(null); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '9px 10px', borderRadius: 10, cursor: 'pointer', marginBottom: 2,
+                    background: isActive ? 'rgba(37,99,235,0.10)' : 'transparent',
+                    border: `1px solid ${isActive ? 'rgba(37,99,235,0.30)' : 'transparent'}`,
+                    transition: 'all 0.15s',
+                    animation: `slideInLeft 0.2s ease ${i * 0.025}s both`,
                   }}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <div>
-                    <div className="sidebar-section-label" style={{ color: w.type === 'proprietor' ? 'var(--yellow)' : 'var(--violet-2)', marginBottom: 8 }}>
-                      {w.type}
+                  {/* Category colour strip */}
+                  <div style={{ width: 3, height: 32, borderRadius: 2, background: cc, flexShrink: 0 }} />
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 12, fontWeight: 600, color: isActive ? 'var(--text)' : 'var(--text-2)',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>{w.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: cc, letterSpacing: '0.08em' }}>{w.type.toUpperCase()}</span>
+                      {w.location && <><span style={{ color: 'var(--border)' }}>·</span><span style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{w.location}</span></>}
                     </div>
-                    <div className="sidebar-mini-title">{w.name}</div>
-                    <div className="sidebar-mini-sub">{w.location || 'Location not set'}</div>
                   </div>
 
-                  <div className="sidebar-mini-count">
-                    <strong>{count}</strong>
-                    <span>Files</span>
-                  </div>
+                  <span className="mono" style={{
+                    fontSize: 10, color: isActive ? 'var(--blue-light)' : 'var(--muted)',
+                    background: isActive ? 'var(--blue-soft)' : 'transparent',
+                    padding: '2px 6px', borderRadius: 5, flexShrink: 0,
+                  }}>{count}</span>
                 </div>
               );
-            })
-          ) : (
-            <div className="panel sidebar-mini">
-              <div>
-                <div className="sidebar-mini-title">No works found</div>
-                <div className="sidebar-mini-sub">
-                  Adjust filters or add a new work to get started.
-                </div>
-              </div>
-            </div>
-          )}
+            })}
+          </div>
 
-          <div style={{ marginTop: 'auto' }} className="panel sidebar-card">
-            <div className="sidebar-section-label">Premium Shortcuts</div>
-            <div className="sidebar-shortcut-line">
-              <span>Top work</span>
-              <strong style={{ color: 'var(--yellow)' }}>{works[0]?.name || 'Example'}</strong>
-            </div>
-            <div className="sidebar-shortcut-line">
-              <span>Total files</span>
-              <strong style={{ color: 'var(--violet-2)' }}>{allFilesCount}</strong>
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <button className="btn-premium" style={{ width: '100%' }} onClick={() => setShowAddWork(true)}>
+          {/* Add work button */}
+          {session.role === 'admin' && (
+            <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+              <button onClick={() => setShowAddWork(true)} className="btn btn-primary" style={{ width: '100%', borderRadius: 10, height: 38 }}>
                 + Add New Work
               </button>
             </div>
-          </div>
+          )}
         </aside>
 
-        <main className="workspace">
-          {showUsers ? (
-            <UsersPanel works={works} onClose={() => setShowUsers(false)} />
-          ) : showSettings ? (
-            <SettingsPanel onClose={() => setShowSettings(false)} />
+        {/* ── MAIN AREA ── */}
+        <main style={{ flex: 1, overflowY: 'auto', padding: 24, position: 'relative' }}>
+
+          {panel === 'settings' ? (
+            <SettingsPanel
+              categories={categories} folderTypes={folderTypes}
+              onClose={() => setPanel(null)} onRefresh={fetchAll}
+            />
+          ) : panel === 'users' ? (
+            <UsersPanel works={works} onClose={() => setPanel(null)} />
+
           ) : !activeWork ? (
-            <div className="panel hero-panel fade-up">
-              <div className="hero-content">
-                <div className="hero-icon">✦</div>
-                <div className="hero-title">Choose a work</div>
-                <div className="hero-copy">
-                  Open an existing work from the left or start a new one. The shell is tighter,
-                  sharper, and redesigned around a more premium internal control style.
-                </div>
 
-                <div className="stat-grid">
-                  <div className="glass-card stat-card">
-                    <div className="stat-number" style={{ color: 'var(--yellow)' }}>{works.length}</div>
-                    <div className="stat-label">Works</div>
-                  </div>
-                  <div className="glass-card stat-card">
-                    <div className="stat-number" style={{ color: '#fff' }}>{allFilesCount}</div>
-                    <div className="stat-label">Files</div>
-                  </div>
-                  <div className="glass-card stat-card">
-                    <div className="stat-number" style={{ color: 'var(--violet-2)' }}>{works.filter((w) => w.type === 'proprietor').length}</div>
-                    <div className="stat-label">Proprietor</div>
-                  </div>
-                  <div className="glass-card stat-card">
-                    <div className="stat-number" style={{ color: 'var(--red-2)' }}>{FOLDER_DEFS.length}</div>
-                    <div className="stat-label">Folder Types</div>
-                  </div>
+            /* ── WELCOME SCREEN ── */
+            <div className="fade-up" style={{
+              minHeight: '100%', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 32,
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 40, color: 'var(--text)', lineHeight: 1.1 }}>
+                  Select a work<br /><span style={{ color: 'var(--blue-light)' }}>to get started.</span>
                 </div>
-
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 24, flexWrap: 'wrap' }}>
-                  <button className="btn-premium" onClick={() => setShowAddWork(true)}>Create Work</button>
-                  <button className="btn-secondary" onClick={() => setShowSettings(true)}>Open Settings</button>
+                <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 12 }}>
+                  Choose from the sidebar or create a new work below.
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="fade-up">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
-                <div>
-                  <div className="section-eyebrow">
-                    {activeWork.type === 'proprietor' ? 'Proprietor' : 'Partnership'}
-                  </div>
-                  <div className="premium-title section-title">{activeWork.name}</div>
-                  <div className="section-copy">
-                    {[activeWork.loa && `LOA: ${activeWork.loa}`, activeWork.location].filter(Boolean).join(' · ')}
-                  </div>
-                </div>
 
+              {/* Global stats */}
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {[
+                  { v: works.length,        l: 'Works',        c: 'var(--blue-light)' },
+                  { v: globalTotal,          l: 'Total Files',  c: 'var(--text)' },
+                  { v: categories.length,   l: 'Categories',   c: '#818cf8' },
+                  { v: folderTypes.length,  l: 'Folder Types', c: 'var(--text-2)' },
+                ].map(({ v, l, c }) => (
+                  <div key={l} className="card" style={{ padding: '20px 28px', textAlign: 'center', minWidth: 130 }}>
+                    <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 36, fontWeight: 800, color: c, lineHeight: 1 }}>{v}</div>
+                    <div style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.15em', marginTop: 6 }}>{l.toUpperCase()}</div>
+                  </div>
+                ))}
+              </div>
+
+              {session.role === 'admin' && (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setShowAddWork(true)} className="btn btn-primary btn-lg">+ Create Work</button>
+                  <button onClick={() => setPanel('settings')} className="btn btn-outline btn-lg">⚙ Settings</button>
+                </div>
+              )}
+            </div>
+
+          ) : (
+
+            /* ── WORK DETAIL ── */
+            <div className="fade-up">
+              {/* Work header */}
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                gap: 16, marginBottom: 22, paddingBottom: 20, borderBottom: '1px solid var(--border)',
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                    <span style={{
+                      padding: '3px 12px', borderRadius: 999, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+                      background: getCatColor(activeWork.type) + '18',
+                      color: getCatColor(activeWork.type),
+                      border: `1px solid ${getCatColor(activeWork.type)}35`,
+                    }}>{activeWork.type.toUpperCase()}</span>
+                    {activeWork.loa && <span className="badge badge-white mono" style={{ fontSize: 10 }}>LOA: {activeWork.loa}</span>}
+                    {activeWork.location && <span style={{ fontSize: 12, color: 'var(--muted)' }}>📍 {activeWork.location}</span>}
+                  </div>
+                  <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 800, color: 'var(--text)', lineHeight: 1.1 }}>
+                    {activeWork.name}
+                  </div>
+                  {activeWork.notes && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6, maxWidth: 600 }}>{activeWork.notes}</div>}
+                </div>
                 {session.role === 'admin' && (
-                  <button className="btn-danger" onClick={() => handleDeleteWork(activeWork.id)}>
-                    Delete Work
+                  <button onClick={() => handleDeleteWork(activeWork.id)} className="btn btn-danger btn-sm" style={{ flexShrink: 0 }}>
+                    🗑 Delete
                   </button>
                 )}
               </div>
 
-              <div className="stat-grid" style={{ maxWidth: 'none', margin: '0 0 18px 0' }}>
-                <div className="glass-card stat-card">
-                  <div className="stat-number" style={{ color: 'var(--yellow)' }}>{totalFiles}</div>
-                  <div className="stat-label">Total Files</div>
-                </div>
-                <div className="glass-card stat-card">
-                  <div className="stat-number" style={{ color: 'var(--violet-2)' }}>{FOLDER_DEFS.length}</div>
-                  <div className="stat-label">Folders</div>
-                </div>
-                <div className="glass-card stat-card">
-                  <div className="stat-number" style={{ color: 'var(--red-2)' }}>
-                    {(activeWork.fileCounts?.inv || 0) + (activeWork.fileCounts?.bill || 0)}
+              {/* Stats row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
+                {[
+                  { v: totalFiles, l: 'Files', c: 'var(--blue-light)', icon: '📄' },
+                  { v: folderTypes.length, l: 'Folders', c: 'var(--text-2)', icon: '📁' },
+                  { v: (activeWork.fileCounts?.inv || 0) + (activeWork.fileCounts?.bill || 0), l: 'Billing Docs', c: '#818cf8', icon: '🧾' },
+                  { v: new Date(activeWork.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }), l: 'Created', c: 'var(--muted)', icon: '📅' },
+                ].map(({ v, l, c, icon }) => (
+                  <div key={l} className="card" style={{ padding: '14px 18px', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', right: 14, top: 14, fontSize: 20, opacity: 0.08 }}>{icon}</div>
+                    <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 28, fontWeight: 800, color: c, lineHeight: 1 }}>{v}</div>
+                    <div style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.12em', marginTop: 5 }}>{l.toUpperCase()}</div>
                   </div>
-                  <div className="stat-label">Billing Docs</div>
-                </div>
-                <div className="glass-card stat-card">
-                  <div className="stat-number" style={{ color: '#fff' }}>
-                    {activeWork.type === 'proprietor' ? 'P' : 'PT'}
-                  </div>
-                  <div className="stat-label">Type</div>
-                </div>
+                ))}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 18 }}>
-                {FOLDER_DEFS.map((f) => {
-                  const active = activeFolder === f.key;
+              {/* Folder grid — fully dynamic from DB */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 22 }}>
+                {folderTypes.map((f, i) => {
+                  const isActive = activeFolder === f.key;
+                  const count    = activeWork.fileCounts?.[f.key] || 0;
                   return (
                     <button
                       key={f.key}
-                      className="glass-card"
-                      onClick={() => setActiveFolder(active ? null : f.key)}
+                      onClick={() => setActiveFolder(isActive ? null : f.key)}
                       style={{
-                        borderRadius: 22,
-                        padding: '18px 16px',
-                        border: `1px solid ${active ? f.color : 'rgba(255,255,255,0.08)'}`,
-                        background: active ? `${f.color}16` : 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02))',
-                        color: 'var(--text)',
-                        textAlign: 'left',
-                        cursor: 'pointer',
+                        background: isActive ? `${f.color}14` : 'var(--card)',
+                        border: `1px solid ${isActive ? f.color + '55' : 'var(--border)'}`,
+                        borderRadius: 12, padding: '16px 14px', cursor: 'pointer',
+                        textAlign: 'left', transition: 'all 0.18s',
+                        boxShadow: isActive ? `0 0 18px ${f.color}18` : 'none',
+                        animation: `fadeUp 0.22s ease ${i * 0.035}s both`,
+                        position: 'relative', overflow: 'hidden',
                       }}
                     >
-                      <div style={{ fontSize: 22 }}>{f.icon}</div>
-                      <div style={{ marginTop: 10, fontWeight: 700 }}>{f.name}</div>
-                      <div className="mono-font" style={{ marginTop: 6, fontSize: 11, color: active ? '#fff' : 'var(--muted)' }}>
-                        {activeWork.fileCounts?.[f.key] || 0} files
+                      {isActive && (
+                        <div style={{
+                          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                          background: `linear-gradient(90deg, transparent, ${f.color}, transparent)`,
+                        }} />
+                      )}
+                      <div style={{ fontSize: 22, marginBottom: 10 }}>{f.icon}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: isActive ? f.color : 'var(--text-2)', letterSpacing: '0.02em' }}>{f.name}</div>
+                      <div className="mono" style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4 }}>
+                        {count} {count === 1 ? 'file' : 'files'}
                       </div>
                     </button>
                   );
                 })}
               </div>
 
-              {activeFolder && (
+              {activeFolder && activeFolderDef && (
                 <FolderView
                   key={`${activeWorkId}-${activeFolder}`}
                   work={activeWork}
                   folderKey={activeFolder}
-                  folderDef={FOLDER_DEFS.find((f) => f.key === activeFolder)}
+                  folderDef={activeFolderDef}
                   session={session}
-                  onFilesChanged={fetchWorks}
+                  onFilesChanged={fetchAll}
                 />
               )}
             </div>
@@ -396,11 +392,9 @@ export default function DashboardClient({ session }) {
 
       {showAddWork && (
         <AddWorkModal
+          categories={categories}
           onClose={() => setShowAddWork(false)}
-          onCreated={() => {
-            setShowAddWork(false);
-            fetchWorks();
-          }}
+          onCreated={() => { fetchAll(); setShowAddWork(false); }}
         />
       )}
     </div>

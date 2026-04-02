@@ -1,331 +1,195 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 
 export default function UsersPanel({ works, onClose }) {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [users, setUsers]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [showAdd, setShowAdd]       = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [editWorkIds, setEditWorkIds] = useState([]);
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'user',
-    workIds: [],
-  });
+  const [form, setForm] = useState({ name: '', username: '', password: '', role: 'user', workIds: [] });
 
   async function fetchUsers() {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      const res = await fetch('/api/users', { cache: 'no-store' });
+      const res  = await fetch('/api/users');
       const data = await res.json();
-
-      if (!res.ok) {
-        setUsers([]);
-        setError(data.error || 'Failed to load users');
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || 'Failed'); setUsers([]); return; }
       setUsers(Array.isArray(data) ? data : []);
-    } catch {
-      setUsers([]);
-      setError('Failed to load users');
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError('Failed to load users'); }
+    finally { setLoading(false); }
   }
+  useEffect(() => { fetchUsers(); }, []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  function toggleWorkId(arr, wid) {
-    return arr.includes(wid) ? arr.filter((x) => x !== wid) : [...arr, wid];
-  }
+  function toggleId(arr, id) { return arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]; }
 
   async function handleCreate() {
-    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
-      setError('Name, username, and password are required');
-      return;
+    if (!form.name.trim() || !form.username.trim() || !form.password.trim()) {
+      setError('Name, username and password are required'); return;
     }
-
-    setSaving(true);
-    setError('');
-
+    setSaving(true); setError('');
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          name: form.name.trim(),
-          email: form.email.trim(),
-        }),
+      const res  = await fetch('/api/users', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to create user');
-        return;
-      }
-
-      setForm({
-        name: '',
-        email: '',
-        password: '',
-        role: 'user',
-        workIds: [],
-      });
-      setShowAdd(false);
-      await fetchUsers();
-    } catch {
-      setError('Failed to create user');
-    } finally {
-      setSaving(false);
-    }
+      if (!res.ok) { setError(data.error || 'Failed'); return; }
+      setForm({ name: '', username: '', password: '', role: 'user', workIds: [] });
+      setShowAdd(false); fetchUsers();
+    } finally { setSaving(false); }
   }
 
   async function handleDelete(id) {
     if (!confirm('Delete this user?')) return;
-    await fetch(`/api/users/${id}`, { method: 'DELETE' });
-    await fetchUsers();
+    await fetch(`/api/users/${id}`, { method: 'DELETE' }); fetchUsers();
   }
 
   async function handleSaveWorks(id) {
     await fetch(`/api/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ workIds: editWorkIds }),
     });
-    setEditingUser(null);
-    await fetchUsers();
+    setEditingUser(null); fetchUsers();
   }
 
   return (
     <div className="fade-up">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, paddingBottom: 18, borderBottom: '1px solid var(--border)' }}>
         <div>
-          <div className="section-eyebrow">Access Control</div>
-          <div className="premium-title section-title" style={{ fontSize: 44 }}>Users</div>
-          <div className="section-copy" style={{ maxWidth: 560 }}>
-            Create users, assign work access, and manage internal permissions.
-          </div>
+          <div style={{ fontSize: 10, color: 'var(--blue-light)', letterSpacing: '0.2em', fontWeight: 600, marginBottom: 4 }}>ADMIN</div>
+          <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 26, color: 'var(--text)' }}>User Management</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Create users, assign work access and manage permissions.</div>
         </div>
-
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setShowAdd((v) => !v)} className="btn-premium">
-            + Add User
-          </button>
-          <button onClick={onClose} className="btn-ghost">
-            Close
-          </button>
+          <button onClick={() => setShowAdd(v => !v)} className="btn btn-primary btn-sm" style={{ borderRadius: 8 }}>+ Add User</button>
+          <button onClick={onClose} className="btn btn-outline btn-sm" style={{ borderRadius: 8 }}>✕ Close</button>
         </div>
       </div>
 
+      {/* Add user form */}
       {showAdd && (
-        <div className="panel" style={{ padding: 22, marginBottom: 18 }}>
-          <div className="modal-grid-2">
-            <input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Full name"
-            />
-            <input
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="Username or email"
-            />
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-              placeholder="Temporary password"
-            />
-            <select
-              value={form.role}
-              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
+        <div className="card" style={{ padding: 20, marginBottom: 18 }}>
+          <div style={{ fontSize: 11, color: 'var(--blue-light)', letterSpacing: '0.15em', fontWeight: 700, marginBottom: 16 }}>NEW USER</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.15em', display: 'block', marginBottom: 5 }}>FULL NAME *</label>
+              <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full Name" style={{ height: 38 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.15em', display: 'block', marginBottom: 5 }}>USERNAME * (used to login)</label>
+              <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="e.g. vasanth" autoCapitalize="none" style={{ height: 38 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.15em', display: 'block', marginBottom: 5 }}>PASSWORD *</label>
+              <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Temp password" style={{ height: 38 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.15em', display: 'block', marginBottom: 5 }}>ROLE</label>
+              <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ height: 38 }}>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
           </div>
 
-          <div style={{ marginTop: 16 }}>
-            <div className="mono-font" style={{ color: 'var(--muted)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
-              Assign Works
-            </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {works.map((w) => {
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.15em', display: 'block', marginBottom: 8 }}>ASSIGN WORKS</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {works.map(w => {
                 const active = form.workIds.includes(w.id);
                 return (
-                  <button
-                    key={w.id}
-                    onClick={() =>
-                      setForm((f) => ({
-                        ...f,
-                        workIds: toggleWorkId(f.workIds, w.id),
-                      }))
-                    }
-                    style={{
-                      height: 34,
-                      padding: '0 14px',
-                      borderRadius: 999,
-                      border: `1px solid ${active ? 'rgba(139,92,246,0.42)' : 'var(--border)'}`,
-                      background: active ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.03)',
-                      color: active ? '#f6ecff' : 'var(--text-soft)',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {w.name}
-                  </button>
+                  <button key={w.id} onClick={() => setForm(f => ({ ...f, workIds: toggleId(f.workIds, w.id) }))} style={{
+                    height: 28, padding: '0 12px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    border: `1px solid ${active ? 'rgba(59,130,246,0.5)' : 'var(--border)'}`,
+                    background: active ? 'var(--blue-soft)' : 'transparent',
+                    color: active ? 'var(--blue-light)' : 'var(--muted)',
+                    transition: 'all 0.15s',
+                  }}>{w.name}</button>
                 );
               })}
             </div>
           </div>
 
-          {error && (
-            <div className="login-error" style={{ marginTop: 14, marginBottom: 0 }}>
-              {error}
-            </div>
-          )}
+          {error && <div style={{ color: '#f87171', fontSize: 12, marginBottom: 12 }}>{error}</div>}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-            <button onClick={() => setShowAdd(false)} className="btn-ghost">
-              Cancel
-            </button>
-            <button onClick={handleCreate} disabled={saving} className="btn-premium">
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button onClick={() => setShowAdd(false)} className="btn btn-ghost btn-sm" style={{ borderRadius: 8 }}>Cancel</button>
+            <button onClick={handleCreate} disabled={saving} className="btn btn-primary btn-sm" style={{ borderRadius: 8 }}>
               {saving ? 'Saving…' : 'Create User'}
             </button>
           </div>
         </div>
       )}
 
+      {/* User list */}
       {loading ? (
-        <div className="panel" style={{ padding: 22, color: 'var(--muted)' }}>
-          Loading users…
-        </div>
+        <div className="card" style={{ padding: 24, color: 'var(--muted)', textAlign: 'center', fontSize: 13 }}>Loading users…</div>
       ) : (
-        <div className="user-list">
-          {users.map((u) => (
-            <div key={u.id} className="panel user-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                  <div
-                    style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: 16,
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontWeight: 900,
-                      fontSize: 18,
-                      background: u.role === 'admin' ? 'rgba(247,201,72,0.14)' : 'rgba(139,92,246,0.16)',
-                      color: u.role === 'admin' ? '#ffd86b' : '#cfb4ff',
-                    }}
-                  >
-                    {u.name?.[0]?.toUpperCase() || 'U'}
-                  </div>
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {users.map(u => (
+            <div key={u.id} className="card" style={{ padding: '16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* Avatar */}
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 16,
+                    background: u.role === 'admin' ? 'rgba(37,99,235,0.15)' : 'rgba(99,102,241,0.15)',
+                    color: u.role === 'admin' ? 'var(--blue-light)' : '#818cf8',
+                    border: `1px solid ${u.role === 'admin' ? 'rgba(37,99,235,0.25)' : 'rgba(99,102,241,0.25)'}`,
+                  }}>{(u.name || 'U')[0].toUpperCase()}</div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 16 }}>{u.name}</div>
-                    <div style={{ color: 'var(--muted)', fontSize: 13 }}>{u.email}</div>
-                    <div style={{ marginTop: 8 }}>
-                      <span className={`tag-pill ${u.role === 'admin' ? 'tag-admin' : 'tag-user'}`}>
-                        {u.role}
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{u.name}</div>
+                    <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      @{u.username || u.email || '—'}
+                      <span className={`badge ${u.role === 'admin' ? 'badge-blue' : 'badge-white'}`} style={{ marginLeft: 8, verticalAlign: 'middle' }}>
+                        {u.role.toUpperCase()}
                       </span>
                     </div>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => {
-                      setEditingUser(editingUser === u.id ? null : u.id);
-                      setEditWorkIds(u.work_ids || []);
-                    }}
-                    className="btn-secondary"
-                  >
-                    {editingUser === u.id ? 'Close' : 'Works'}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => { setEditingUser(editingUser === u.id ? null : u.id); setEditWorkIds(u.work_ids || []); }} className="btn btn-outline btn-sm" style={{ borderRadius: 8 }}>
+                    {editingUser === u.id ? '✕ Cancel' : '⚙ Works'}
                   </button>
-
-                  <button onClick={() => handleDelete(u.id)} className="btn-danger">
-                    Delete
-                  </button>
+                  <button onClick={() => handleDelete(u.id)} className="btn btn-danger btn-sm" style={{ borderRadius: 8 }}>🗑</button>
                 </div>
               </div>
 
+              {/* Assigned works chips */}
               {editingUser !== u.id && (u.work_ids || []).length > 0 && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
-                  {u.work_ids.map((wid) => {
-                    const w = works.find((x) => x.id === wid);
-                    return w ? (
-                      <span
-                        key={wid}
-                        style={{
-                          height: 30,
-                          padding: '0 12px',
-                          borderRadius: 999,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          border: '1px solid var(--border)',
-                          background: 'rgba(255,255,255,0.03)',
-                          color: 'var(--text-soft)',
-                          fontSize: 11,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {w.name}
-                      </span>
-                    ) : null;
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  {u.work_ids.map(wid => {
+                    const w = works.find(x => x.id === wid);
+                    return w ? <span key={wid} className="badge badge-blue" style={{ fontSize: 10, height: 24, padding: '0 10px' }}>{w.name}</span> : null;
                   })}
                 </div>
               )}
 
+              {/* Edit works inline */}
               {editingUser === u.id && (
-                <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-                  <div className="mono-font" style={{ color: 'var(--muted)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
-                    Adjust Work Access
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {works.map((w) => {
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.15em', fontWeight: 600, marginBottom: 10 }}>ASSIGN WORKS</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                    {works.map(w => {
                       const active = editWorkIds.includes(w.id);
                       return (
-                        <button
-                          key={w.id}
-                          onClick={() => setEditWorkIds((ids) => toggleWorkId(ids, w.id))}
-                          style={{
-                            height: 34,
-                            padding: '0 14px',
-                            borderRadius: 999,
-                            border: `1px solid ${active ? 'rgba(255,53,94,0.42)' : 'var(--border)'}`,
-                            background: active ? 'rgba(255,53,94,0.14)' : 'rgba(255,255,255,0.03)',
-                            color: active ? '#ffdce6' : 'var(--text-soft)',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {w.name}
-                        </button>
+                        <button key={w.id} onClick={() => setEditWorkIds(ids => toggleId(ids, w.id))} style={{
+                          height: 28, padding: '0 12px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          border: `1px solid ${active ? 'rgba(59,130,246,0.5)' : 'var(--border)'}`,
+                          background: active ? 'var(--blue-soft)' : 'transparent',
+                          color: active ? 'var(--blue-light)' : 'var(--muted)',
+                          transition: 'all 0.15s',
+                        }}>{w.name}</button>
                       );
                     })}
                   </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-                    <button onClick={() => handleSaveWorks(u.id)} className="btn-premium">
-                      Save Assignments
-                    </button>
-                  </div>
+                  <button onClick={() => handleSaveWorks(u.id)} className="btn btn-primary btn-sm" style={{ borderRadius: 8 }}>Save Assignments</button>
                 </div>
               )}
             </div>
